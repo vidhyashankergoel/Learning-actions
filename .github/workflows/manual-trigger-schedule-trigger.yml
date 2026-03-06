@@ -23,9 +23,9 @@ name: cron-job-trigger   # Name of the workflow visible in GitHub Actions UI
 # NOTE
 # GitHub may delay scheduled jobs slightly depending on platform load.
 on:
-  schedule:
-    - cron: "*/5 * * * *"   # Trigger workflow every 5 minutes
-  workflow_dispatch:        # Allow manual run from GitHub UI
+#  schedule:
+#    - cron: "*/5 * * * *"   # Trigger workflow every 5 minutes
+#  workflow_dispatch:        # Allow manual run from GitHub UI
   push:                     # Trigger workflow on every push
 
 jobs:   # A workflow consists of one or more jobs.
