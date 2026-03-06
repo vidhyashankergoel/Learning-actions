@@ -2,3 +2,14 @@ name: my-first-workflow
 
 # to get trigger on every push in this repo in any branch 
 on: push
+
+jobs:
+
+ job1:        # jobs can run parallel
+   name: job1
+   runs-on:  ubuntu-latest
+   steps:             #steps can only run sequentially inside a job 
+     - name: Running single command in job1
+       run: echo "Hi this is vidhya shanker"
+     - name: Checking OS release for Github hosted runner 
+       run: cat /etc/os-release
