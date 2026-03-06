@@ -1,0 +1,285 @@
+name: cron-job-trigger   # Name of the workflow visible in GitHub Actions UI
+
+# ============================================================
+# WORKFLOW TRIGGER
+# ============================================================
+# This workflow runs automatically based on a CRON schedule.
+# GitHub Actions uses standard CRON syntax.
+#
+# CRON FORMAT
+# ┌──────── minute (0-59)
+# │ ┌────── hour (0-23)
+# │ │ ┌──── day of month (1-31)
+# │ │ │ ┌── month (1-12)
+# │ │ │ │ ┌ day of week (0-6) (Sunday = 0)
+# │ │ │ │ │
+# * * * * *
+#
+# "*/1 * * * *" means run every 1 minute.
+#
+# NOTE:
+# GitHub may delay scheduled jobs slightly depending on load.
+on:
+  schedule:
+    - cron: "*/1 * * * *"    # Run workflow every 1 minute
+
+jobs:   # A workflow consists of one or more jobs.
+
+  # ==========================================================
+  # JOB 1 (Ubuntu Runner)
+  # ==========================================================
+  job1:                        # Internal job identifier
+    name: job1                 # Friendly name shown in GitHub UI
+    runs-on: ubuntu-latest     # GitHub will provision an Ubuntu runner VM
+
+    steps:                     # Steps run sequentially inside a job
+
+      - name: Running single command in job1
+        run: echo "Hi this is vidhya shanker"
+        # Executes a Linux shell command on the runner.
+        # This prints a message in the workflow logs.
+
+      - name: Checking OS release for GitHub hosted runner
+        run: cat /etc/os-release
+        # Reads Linux OS information file.
+        # Displays details such as:
+        #   OS distribution name
+        #   OS version
+        #   distribution ID
+
+
+  # ==========================================================
+  # JOB 2 (Ubuntu Runner)
+  # ==========================================================
+  job2:
+    name: job2
+    runs-on: ubuntu-latest     # GitHub provisions another Ubuntu runner VM
+
+    steps:
+
+      - name: Checking the hostname of runner
+        run: hostname
+        # Displays hostname of the runner machine.
+        # Each GitHub runner VM has a unique hostname.
+
+      - name: Running multiple commands
+        run: |
+          echo "vidhya is the best devops engineer"
+          echo "today date is 05 march 2026"
+        # "|" allows running multiple shell commands
+        # sequentially in a single step.
+
+
+  # ==========================================================
+  # JOB 3 (Windows Runner)
+  # ==========================================================
+  job3:
+    name: job3
+    needs: job1                 # This job waits until job1 completes
+    runs-on: windows-latest     # GitHub provisions a Windows runner
+
+    steps:
+
+      - name: Job with single dependency
+        run: Start-Sleep -Seconds 10
+        # PowerShell command used on Windows
+        # Pauses execution for 10 seconds.
+
+      - name: Checking runner information
+        shell: pwsh             # Explicitly use PowerShell shell
+        run: Get-ComputerInfo
+        # Displays Windows system information
+        # such as OS version, BIOS, hardware details.
+
+
+  # ==========================================================
+  # JOB 4 (macOS Runner)
+  # ==========================================================
+  job4:
+    name: job4
+    needs: [job1, job2, job3]   # This job runs only after job1, job2, and job3 finish
+    runs-on: macos-latest       # GitHub provisions a macOS runner
+
+    steps:
+
+      - name: Job for multiple dependencies
+        run: sleep 10
+        # Linux/macOS command to pause execution.
+
+      - name: Checking runner information
+        run: sw_vers
+        # macOS command that prints OS version details
+        # such as:
+        #   ProductName
+        #   ProductVersion
+        #   BuildVersion
+
+
+
+# ============================================================
+# COMPLETE WORKFLOW EXECUTION FLOW
+# ============================================================
+#
+# STEP 1
+# GitHub's internal scheduler checks CRON triggers.
+#
+# Since the cron expression is:
+#   */1 * * * *
+#
+# the workflow is triggered every minute.
+#
+#
+# STEP 2
+# GitHub scans repository folder:
+#
+#   .github/workflows/
+#
+# and loads this workflow definition.
+#
+#
+# STEP 3
+# GitHub creates a workflow run.
+#
+# Jobs are evaluated for dependency order.
+#
+#
+# ============================================================
+# JOB EXECUTION ORDER
+# ============================================================
+#
+# Jobs without dependencies start immediately.
+#
+# Therefore:
+#
+#   job1
+#   job2
+#
+# start in parallel.
+#
+#
+# ============================================================
+# JOB1 EXECUTION
+# ============================================================
+#
+# GitHub provisions an Ubuntu runner VM.
+#
+# Step 1 prints message:
+#
+#   Hi this is vidhya shanker
+#
+# Step 2 prints Linux OS information from:
+#
+#   /etc/os-release
+#
+# Job1 completes.
+#
+#
+# ============================================================
+# JOB2 EXECUTION
+# ============================================================
+#
+# Runs in parallel with job1 on another Ubuntu VM.
+#
+# Step 1 prints hostname of runner.
+#
+# Step 2 prints two echo statements.
+#
+# Job2 completes.
+#
+#
+# ============================================================
+# JOB3 EXECUTION (Windows Runner)
+# ============================================================
+#
+# Job3 has dependency:
+#
+#   needs: job1
+#
+# Therefore it starts only after job1 finishes.
+#
+# GitHub provisions a Windows runner VM.
+#
+# Step 1 pauses execution for 10 seconds.
+#
+# Step 2 runs PowerShell command:
+#
+#   Get-ComputerInfo
+#
+# which prints Windows system details.
+#
+# Job3 completes.
+#
+#
+# ============================================================
+# JOB4 EXECUTION (macOS Runner)
+# ============================================================
+#
+# Job4 depends on:
+#
+#   job1
+#   job2
+#   job3
+#
+# Therefore it waits until all three jobs finish.
+#
+# GitHub provisions a macOS runner.
+#
+# Step 1 pauses execution for 10 seconds.
+#
+# Step 2 runs:
+#
+#   sw_vers
+#
+# which prints macOS version and build details.
+#
+# Job4 completes.
+#
+#
+# ============================================================
+# JOB EXECUTION GRAPH
+# ============================================================
+#
+#        job1 ────────┐
+#                     ├── job3 ────┐
+#        job2 ────────┘            │
+#                                  └── job4
+#
+#
+# Parallel jobs
+#
+#   job1
+#   job2
+#
+#
+# Sequential dependency
+#
+#   job3 depends on job1
+#
+#
+# Multi dependency
+#
+#   job4 depends on job1, job2, job3
+#
+#
+# ============================================================
+# KEY CONCEPTS DEMONSTRATED
+# ============================================================
+#
+# Scheduled workflows using CRON
+#
+# Multi-OS runners:
+#   Ubuntu
+#   Windows
+#   macOS
+#
+# Job dependencies using "needs"
+#
+# Parallel vs sequential execution
+#
+# OS-specific commands
+#
+# Linux  → cat /etc/os-release
+# Windows → Get-ComputerInfo
+# macOS  → sw_vers
+#
+# ============================================================
