@@ -1,0 +1,272 @@
+name: windows-macos   # Workflow name visible in the GitHub Actions UI
+
+# ============================================================
+# WORKFLOW TRIGGER
+# ============================================================
+# This workflow will run automatically every time code is
+# pushed to any branch of this repository.
+on: push
+
+jobs:   # A workflow is composed of multiple jobs.
+
+  # ==========================================================
+  # JOB 1 (Ubuntu Runner)
+  # ==========================================================
+  job1:                       # Internal job identifier used by GitHub
+    name: job1                # Display name shown in GitHub UI
+    runs-on: ubuntu-latest    # Job runs on GitHub-hosted Ubuntu Linux runner
+
+    steps:                    # Steps run sequentially inside the job
+
+      - name: Running single command in job1
+        run: echo "Hi this is vidhya shanker"
+        # Executes a shell command on the runner
+        # Simply prints a message to the workflow logs
+
+      - name: Checking OS release for GitHub hosted runner
+        run: cat /etc/os-release
+        # Reads OS information from the Linux system
+        # Displays details such as:
+        # OS distribution name
+        # OS version
+        # Linux ID information
+
+
+  # ==========================================================
+  # JOB 2 (Ubuntu Runner)
+  # ==========================================================
+  job2:
+    name: job2
+    runs-on: ubuntu-latest    # Another Ubuntu runner will be created
+
+    steps:
+
+      - name: Checking the hostname of runner
+        run: hostname
+        # Prints the hostname of the VM created by GitHub
+        # Each runner instance has a unique hostname
+
+      - name: Running multiple commands
+        run: |
+          echo "vidhya is the best devops engineer"
+          echo "today date is 05 march 2026"
+        # "|" allows execution of multiple shell commands
+        # inside the same step
+
+
+  # ==========================================================
+  # JOB 3 (Windows Runner)
+  # ==========================================================
+  job3:
+    name: job3
+    needs: job1                # This job will only start after job1 finishes
+    runs-on: windows-latest    # Job runs on a Windows GitHub runner
+
+    steps:
+
+      - name: Job with single dependency
+        run: Start-Sleep -Seconds 10
+        # Pauses execution for 10 seconds
+        # Windows uses PowerShell commands instead of Linux sleep
+
+      - name: Checking runner information
+        shell: pwsh            # Explicitly use PowerShell shell
+        run: Get-ComputerInfo
+        # Displays detailed Windows system information
+        # such as OS version, hardware info, BIOS details etc.
+
+
+  # ==========================================================
+  # JOB 4 (MacOS Runner)
+  # ==========================================================
+  job4:
+    name: job4
+    needs: [job1, job2, job3]   # This job will run only after job1, job2, and job3 complete
+    runs-on: macos-latest       # Job runs on a macOS GitHub runner
+
+    steps:
+
+      - name: Job for multiple dependencies
+        run: sleep 10
+        # Pause execution for 10 seconds
+
+      - name: Checking runner information
+        run: sw_vers
+        # sw_vers is a macOS command
+        # It prints macOS version, build version, and product name
+
+
+
+# ============================================================
+# COMPLETE WORKFLOW EXECUTION FLOW
+# ============================================================
+#
+# Step 1
+# A developer pushes code to any branch of the repository.
+#
+# Step 2
+# GitHub detects the push event and checks all workflow
+# files inside:
+#
+# .github/workflows/
+#
+# Step 3
+# GitHub finds this workflow named "windows-macos".
+#
+# Step 4
+# GitHub creates a workflow run and prepares job execution.
+#
+#
+# ============================================================
+# JOB EXECUTION ORDER
+# ============================================================
+#
+# Jobs without dependencies start immediately.
+#
+# Therefore these two jobs start in parallel:
+#
+#   job1 (Ubuntu runner)
+#   job2 (Ubuntu runner)
+#
+#
+# ============================================================
+# JOB1 EXECUTION
+# ============================================================
+#
+# Runner VM with Ubuntu is created.
+#
+# Step 1
+# Prints message:
+#
+#   Hi this is vidhya shanker
+#
+# Step 2
+# Reads Linux OS metadata file:
+#
+#   /etc/os-release
+#
+# Displays details like:
+#   Ubuntu version
+#   distribution ID
+#
+# Job1 completes.
+#
+#
+# ============================================================
+# JOB2 EXECUTION
+# ============================================================
+#
+# Runs in parallel with job1.
+#
+# Step 1
+# Prints hostname of the Ubuntu runner VM.
+#
+# Step 2
+# Prints two echo messages.
+#
+# Job2 completes.
+#
+#
+# ============================================================
+# JOB3 EXECUTION (Windows Runner)
+# ============================================================
+#
+# Job3 has dependency:
+#
+#   needs: job1
+#
+# Meaning:
+# Job3 waits until job1 completes successfully.
+#
+# After job1 finishes:
+#
+# GitHub provisions a Windows runner.
+#
+# Step 1
+# Pause execution for 10 seconds.
+#
+# Step 2
+# Runs PowerShell command:
+#
+#   Get-ComputerInfo
+#
+# This prints Windows system information.
+#
+# Job3 completes.
+#
+#
+# ============================================================
+# JOB4 EXECUTION (MacOS Runner)
+# ============================================================
+#
+# Job4 has multiple dependencies:
+#
+#   job1
+#   job2
+#   job3
+#
+# Job4 will only start after ALL three jobs finish.
+#
+# GitHub provisions a macOS runner.
+#
+# Step 1
+# Sleep for 10 seconds.
+#
+# Step 2
+# Execute macOS command:
+#
+#   sw_vers
+#
+# Displays macOS version and build information.
+#
+# Job4 completes.
+#
+#
+# ============================================================
+# JOB EXECUTION GRAPH
+# ============================================================
+#
+#        job1 ────────┐
+#                     ├── job3 ────┐
+#        job2 ────────┘            │
+#                                  └── job4
+#
+#
+# Parallel execution:
+#
+#   job1
+#   job2
+#
+# Sequential dependency:
+#
+#   job3 depends on job1
+#
+# Multi dependency:
+#
+#   job4 depends on job1, job2, job3
+#
+#
+# ============================================================
+# KEY CONCEPTS DEMONSTRATED
+# ============================================================
+#
+# Workflow Trigger
+#   push
+#
+# Jobs running on different OS:
+#   Ubuntu
+#   Windows
+#   macOS
+#
+# Job dependencies using:
+#   needs
+#
+# Parallel vs sequential job execution
+#
+# OS-specific commands:
+#
+# Linux   → cat /etc/os-release
+# Windows → Get-ComputerInfo
+# macOS   → sw_vers
+#
+# ============================================================
