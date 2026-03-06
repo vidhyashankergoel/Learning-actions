@@ -1,0 +1,243 @@
+name: run-job-parallel   # Name of the workflow shown in GitHub Actions UI
+
+# ============================================================
+# WORKFLOW TRIGGER
+# ============================================================
+# This workflow automatically starts whenever a push happens
+# to any branch in this repository.
+on: push
+
+jobs:   # A workflow is composed of one or more jobs.
+
+  # ==========================================================
+  # JOB 1
+  # ==========================================================
+  job1:                        # Unique internal job ID used by GitHub
+    name: job1                 # Display name visible in the Actions UI
+    runs-on: ubuntu-latest     # Job will run on a GitHub-hosted Ubuntu runner
+
+    steps:                     # Steps run sequentially inside a job
+
+      - name: Running single command in job1
+        run: echo "Hi this is vidhya shanker"
+        # "run" executes a shell command on the runner machine.
+        # This simply prints a message to the workflow logs.
+
+      - name: Checking OS release for GitHub hosted runner
+        run: cat /etc/os-release
+        # Reads the OS information file of the Linux runner.
+        # This tells us details such as:
+        #   - OS distribution
+        #   - OS version
+        #   - ID and version name
+
+
+  # ==========================================================
+  # JOB 2
+  # ==========================================================
+  job2:                        # Job identifier
+    name: job2                 # Display name
+    runs-on: ubuntu-latest     # Runs on a GitHub Ubuntu runner
+
+    steps:
+
+      - name: Checking the hostname of runner
+        run: hostname
+        # "hostname" prints the system hostname of the runner.
+        # Each GitHub runner VM gets a unique hostname.
+
+      - name: Running multiple commands
+        run: |
+          echo "vidhya is the best devops engineer"
+          echo "today date is 05 march 2026"
+        # The "|" symbol allows running multiple shell commands
+        # inside the same step.
+
+
+  # ==========================================================
+  # JOB 3
+  # ==========================================================
+  job3:
+    name: job3
+    needs: job1                 # This job will start only after job1 completes successfully
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Job with single dependency
+        run: sleep 10
+        # "sleep 10" pauses execution for 10 seconds.
+        # Used here just to simulate some work.
+
+
+  # ==========================================================
+  # JOB 4
+  # ==========================================================
+  job4:
+    name: job4
+    needs: [job1, job2, job3]   # This job depends on multiple jobs
+                                # It will start only after job1, job2, and job3 finish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Job for multiple dependencies
+        run: sleep 10
+        # Simulates some workload.
+
+
+# ============================================================
+# COMPLETE WORKFLOW EXECUTION FLOW
+# ============================================================
+#
+# Step 1
+# A developer pushes code to any branch in the repository.
+#
+# Step 2
+# GitHub detects the "push" event and looks inside the
+# .github/workflows directory for workflows that listen
+# to the push trigger.
+#
+# Step 3
+# GitHub finds this workflow file named:
+#   run-job-parallel
+#
+# Step 4
+# GitHub creates a workflow run and prepares jobs.
+#
+#
+# ============================================================
+# JOB EXECUTION ORDER
+# ============================================================
+#
+# Jobs without dependencies run in parallel.
+#
+# So the following jobs start immediately:
+#
+#   job1
+#   job2
+#
+# GitHub provisions separate runner VMs for each job.
+#
+#
+# ============================================================
+# JOB1 EXECUTION
+# ============================================================
+#
+# Step 1
+# Runner VM starts.
+#
+# Step 2
+# Command prints:
+#   Hi this is vidhya shanker
+#
+# Step 3
+# Runner prints Linux OS release information.
+#
+# Job1 completes.
+#
+#
+# ============================================================
+# JOB2 EXECUTION
+# ============================================================
+#
+# Runs in parallel with job1.
+#
+# Step 1
+# Prints hostname of runner machine.
+#
+# Step 2
+# Prints two echo messages.
+#
+# Job2 completes.
+#
+#
+# ============================================================
+# JOB3 EXECUTION
+# ============================================================
+#
+# Job3 has dependency:
+#
+#   needs: job1
+#
+# This means job3 will wait until job1 finishes.
+#
+# After job1 completes:
+#
+# Runner starts job3.
+#
+# Step runs:
+#   sleep 10
+#
+# Job3 completes after 10 seconds.
+#
+#
+# ============================================================
+# JOB4 EXECUTION
+# ============================================================
+#
+# Job4 depends on three jobs:
+#
+#   job1
+#   job2
+#   job3
+#
+# Job4 will only start after ALL three jobs finish.
+#
+# Once they complete:
+#
+# Runner starts job4.
+#
+# Step executes:
+#   sleep 10
+#
+# Job4 completes.
+#
+#
+# ============================================================
+# FINAL RESULT
+# ============================================================
+#
+# Job Execution Timeline:
+#
+#        job1  ──────┐
+#                    ├── job3 ──┐
+#        job2  ──────┘          │
+#                               └── job4
+#
+#
+# Parallel jobs:
+#   job1 and job2
+#
+# Sequential dependency:
+#   job3 depends on job1
+#
+# Multi-dependency:
+#   job4 depends on job1, job2, job3
+#
+#
+# ============================================================
+# KEY CONCEPTS
+# ============================================================
+#
+# Workflow
+#   Automation pipeline triggered by events.
+#
+# Job
+#   Independent unit of work executed on a runner.
+#
+# Step
+#   Individual command executed inside a job.
+#
+# Runner
+#   Machine (VM) that executes jobs.
+#
+# needs
+#   Defines dependency between jobs.
+#
+#
+# Default behavior
+#
+# Jobs run in parallel unless dependency is defined.
+#
+# Steps run sequentially inside a job.
+#
+# ============================================================
