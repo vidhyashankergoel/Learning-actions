@@ -1,5 +1,5 @@
 name: artifact-actions   # Name of the workflow shown in the GitHub Actions UI
-                         # This workflow demonstrates how to create and upload artifacts
+                         # This workflow demonstrates different ways to upload artifacts
 
 # ============================================================
 # WORKFLOW TRIGGER
@@ -42,25 +42,28 @@ jobs:                    # A workflow must contain at least one job
         # Without checkout:
         #   The runner does not automatically contain repository files
         #
-        # This action clones the repo into the working directory.
+        # actions/checkout clones the repository so workflow
+        # steps can access project files.
 
 
-      - name: step3
+      - name: step3 create files for artifacts
         run: |
           echo `pwd` >> myartifact.txt
-          ls -ltr
-          hostname
+          mkdir artifacts
+          echo `ls -ltr` >> artifacts/list.txt
+          echo `hostname` >> artifacts/hostname.txt
         # echo `pwd`
-        #   Executes pwd command and writes its output into a file
+        #   Executes pwd and writes the working directory path
+        #   into file "myartifact.txt"
         #
-        # >> myartifact.txt
-        #   Appends the output to the file named "myartifact.txt"
+        # mkdir artifacts
+        #   Creates a directory named "artifacts"
         #
-        # ls -ltr
-        #   Lists files again so we can verify the artifact file exists
+        # echo `ls -ltr`
+        #   Saves directory listing output into artifacts/list.txt
         #
-        # hostname
-        #   Prints runner hostname
+        # echo `hostname`
+        #   Saves the runner hostname into artifacts/hostname.txt
 
 
       - name: upload single file
@@ -68,16 +71,58 @@ jobs:                    # A workflow must contain at least one job
         with:
           name: single-file
           path: ./myartifact.txt
-        # This step uploads a file from the runner to GitHub
+        # Uploads a single file as an artifact
         #
-        # name
-        #   Logical name for the artifact stored in GitHub
+        # Artifact name:
+        #   single-file
         #
-        # path
-        #   File path on the runner that should be uploaded
+        # File uploaded:
+        #   myartifact.txt
+
+
+      - name: upload from directory
+        uses: actions/upload-artifact@v4
+        with:
+          name: directory_artifacts
+          path: artifacts/
+        # Uploads an entire directory as an artifact
         #
-        # The artifact will appear in the workflow run UI
-        # and can be downloaded later.
+        # Everything inside "artifacts/" will be stored
+        # as one artifact bundle.
+
+
+      - name: upload from multiple paths
+        uses: actions/upload-artifact@v4
+        with:
+          name: multiple-paths
+          path: |
+            ./myartifact.txt
+            artifacts/
+        # Uploads multiple paths together
+        #
+        # Includes:
+        #   myartifact.txt
+        #   artifacts directory
+
+
+      - name: upload from multiple paths with exclusion
+        uses: actions/upload-artifact@v4
+        with:
+          name: multiple-paths-with-exclusion
+          path: |
+            ./myartifact.txt
+            artifacts/
+            !**/hostname.txt
+        # Uploads multiple paths but excludes specific files
+        #
+        # Included:
+        #   myartifact.txt
+        #   artifacts directory
+        #
+        # Excluded:
+        #   hostname.txt
+        #
+        # "!" is used for path exclusion patterns.
 
 
 
@@ -94,11 +139,11 @@ jobs:                    # A workflow must contain at least one job
 #
 #   .github/workflows/
 #
-# to find workflows triggered by push.
+# for workflows triggered by push.
 #
 #
 # STEP 3
-# GitHub finds this workflow:
+# GitHub loads this workflow:
 #
 #   artifact-actions
 #
@@ -108,107 +153,82 @@ jobs:                    # A workflow must contain at least one job
 # STEP 4
 # GitHub provisions a runner VM:
 #
-#   Ubuntu Linux machine
+#   Ubuntu Linux virtual machine
 #
 #
 # ============================================================
-# JOB EXECUTION
+# JOB EXECUTION PROCESS
 # ============================================================
 #
-# STEP 1 (step-1)
-#
-# Commands executed:
+# STEP 1
+# First step prints system information:
 #
 #   pwd
 #   ls -ltr
 #   hostname
 #
-# This shows:
-#   - current working directory
-#   - available files
-#   - runner hostname
 #
-#
-# STEP 2 (checkout step)
-#
-# The action:
+# STEP 2
+# Repository code is downloaded using:
 #
 #   actions/checkout
 #
-# clones the repository into the runner workspace.
-#
-# Now repository files become available.
+# Now workflow has access to project files.
 #
 #
-# STEP 3 (step3)
-#
-# Command executed:
-#
-#   echo `pwd` >> myartifact.txt
-#
-# This writes the runner working directory path into
-# a file called:
+# STEP 3
+# Files and directories are created:
 #
 #   myartifact.txt
 #
-# Then:
-#
-#   ls -ltr
-#
-# confirms the file was created.
+#   artifacts/
+#       list.txt
+#       hostname.txt
 #
 #
-# STEP 4 (upload artifact)
+# STEP 4
+# Artifacts are uploaded to GitHub storage.
 #
-# The action:
+# Upload methods demonstrated:
 #
-#   actions/upload-artifact
-#
-# uploads the file:
+# 1) Single file upload
 #
 #   myartifact.txt
 #
-# from the runner to GitHub artifact storage.
 #
-# The artifact is stored with the name:
+# 2) Directory upload
 #
-#   single-file
+#   artifacts/
 #
 #
-# ============================================================
-# WHAT IS AN ARTIFACT
-# ============================================================
+# 3) Multiple path upload
 #
-# Artifact = file produced during a workflow run that
-# GitHub stores for later use.
+#   myartifact.txt + artifacts/
 #
-# Common artifact examples:
 #
-#   build binaries
-#   test reports
-#   coverage reports
-#   compiled packages
-#   logs
+# 4) Multiple path upload with exclusion
+#
+#   hostname.txt excluded
 #
 #
 # ============================================================
-# WHY ARTIFACTS ARE USED
+# WHY ARTIFACTS ARE IMPORTANT
 # ============================================================
 #
-# Runner environments are EPHEMERAL.
+# GitHub runners are ephemeral machines.
 #
-# When a job finishes:
+# After a job finishes:
 #
 #   the runner VM is destroyed
 #
-# Any files created during the job disappear.
+# Any files created during execution are lost.
 #
-# Artifacts allow us to persist important files
-# outside the runner.
+# Artifacts allow you to store files permanently
+# in the workflow run.
 #
 #
 # ============================================================
-# WHERE ARTIFACTS ARE USED
+# REAL WORLD USE CASES
 # ============================================================
 #
 # Build pipelines
@@ -217,30 +237,32 @@ jobs:                    # A workflow must contain at least one job
 # Test pipelines
 #   store test reports
 #
-# Multi-job workflows
-#   pass files between jobs
+# Data pipelines
+#   store generated datasets
 #
 # Release pipelines
-#   attach build artifacts to releases
+#   store packages before publishing
+#
+# Multi-job pipelines
+#   share files between jobs
 #
 #
 # ============================================================
 # KEY CONCEPTS DEMONSTRATED
 # ============================================================
 #
-# Workflow trigger
+# Workflow triggers
 #   push
 #
 # Runner environment
 #   ubuntu-latest
 #
-# Steps execution
-#   sequential
-#
 # Artifact creation
-#   myartifact.txt
 #
-# Artifact upload
-#   actions/upload-artifact
+# Artifact upload patterns
+#   single file
+#   directory
+#   multiple paths
+#   path exclusion
 #
 # ============================================================
