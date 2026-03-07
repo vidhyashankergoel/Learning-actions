@@ -15,7 +15,7 @@ jobs:
   # ==========================================================
   job1:
     name: job1
-    runs-on: ubuntu-latest      # GitHub provisions an Ubuntu runner VM
+    runs-on: ubuntu-latest
 
     steps:
 
@@ -25,19 +25,18 @@ jobs:
           ls -ltr
           hostname
         # pwd
-        #   Prints current working directory of the runner
+        #   prints current working directory
         #
         # ls -ltr
-        #   Lists files in current workspace
+        #   lists files in workspace
         #
         # hostname
-        #   Displays the hostname of the runner
+        #   shows runner hostname
 
 
       - name: step-2 checkout repository
         uses: actions/checkout@v4
-        # Downloads repository source code to the runner
-        # Required if workflow needs access to repo files
+        # downloads repository source code to the runner
 
 
       - name: step-3 create files for artifacts
@@ -46,16 +45,11 @@ jobs:
           mkdir artifacts
           echo `ls -ltr` >> artifacts/list.txt
           echo `hostname` >> artifacts/hostname.txt
-        # Creates files that will be uploaded as artifacts
+        # files created:
         #
         # myartifact.txt
-        #   contains runner working directory
-        #
         # artifacts/list.txt
-        #   contains directory listing
-        #
         # artifacts/hostname.txt
-        #   contains runner hostname
 
 
       - name: upload single file
@@ -63,7 +57,7 @@ jobs:
         with:
           name: single-file
           path: ./myartifact.txt
-        # Uploads a single file artifact
+        # uploads a single file artifact
 
 
       - name: upload directory artifact
@@ -71,7 +65,7 @@ jobs:
         with:
           name: directory_artifacts
           path: artifacts/
-        # Uploads entire directory
+        # uploads entire directory
 
 
       - name: upload multiple paths
@@ -81,7 +75,7 @@ jobs:
           path: |
             ./myartifact.txt
             artifacts/
-        # Uploads multiple paths together
+        # uploads multiple paths
 
 
       - name: upload multiple paths with exclusion
@@ -92,8 +86,7 @@ jobs:
             ./myartifact.txt
             artifacts/
             !**/hostname.txt
-        # Uploads paths but excludes hostname.txt
-        # "!" is used for exclusion patterns
+        # uploads files but excludes hostname.txt
 
 
   # ==========================================================
@@ -102,7 +95,7 @@ jobs:
   job2:
     name: job2
     runs-on: ubuntu-latest
-    needs: job1                 # job2 starts only after job1 finishes
+    needs: job1
 
     steps:
 
@@ -110,21 +103,20 @@ jobs:
         run: |
           pwd
           ls -ltr
-        # Shows files before artifact download
 
 
       - name: download single file artifact
         uses: actions/download-artifact@v4
         with:
           name: single-file
-        # Downloads artifact created in job1
+        # downloads artifact created in job1
 
 
       - name: check workspace after download
         run: |
           pwd
           ls -ltr
-        # Verifies downloaded artifact exists
+        # confirms artifact download
 
 
   # ==========================================================
@@ -133,7 +125,7 @@ jobs:
   job3:
     name: job3
     runs-on: ubuntu-latest
-    needs: job1                 # job3 also depends on job1
+    needs: job1
 
     steps:
 
@@ -141,21 +133,67 @@ jobs:
         run: |
           pwd
           ls -ltr
-        # Shows directory before downloading artifact
 
 
       - name: download directory artifact
         uses: actions/download-artifact@v4
         with:
           name: directory_artifacts
-        # Downloads the directory artifact created in job1
+        # downloads directory artifact
 
 
       - name: check workspace after download
         run: |
           pwd
           ls -ltr
-        # Verifies directory artifact downloaded successfully
+
+
+  # ==========================================================
+  # JOB 4 : DOWNLOAD ARTIFACTS TO CUSTOM DIRECTORIES
+  # ==========================================================
+  job4:
+    name: job4
+    runs-on: ubuntu-latest
+    needs: job1
+
+    steps:
+
+      - name: create custom folders for downloads
+        run: |
+          mkdir -p single_file
+          mkdir -p download_directory
+        # creates directories where artifacts will be stored
+
+
+      - name: check workspace before download
+        run: |
+          pwd
+          ls -ltr
+
+
+      - name: download single file artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: single-file
+          path: single_file
+        # downloads artifact into custom folder "single_file"
+
+
+      - name: download directory artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: directory_artifacts
+          path: download_directory
+        # downloads artifact into custom folder "download_directory"
+
+
+      - name: check workspace after download
+        run: |
+          pwd
+          echo "checking single file directory"
+          ls -ltr single_file
+          echo "checking directory artifacts"
+          ls -ltr download_directory
 
 
 
@@ -167,15 +205,11 @@ jobs:
 # A developer pushes code to the repository.
 
 # STEP 2
-# GitHub detects the push trigger and scans:
+# GitHub detects the push trigger and loads workflows from:
 # .github/workflows/
 
 # STEP 3
-# GitHub loads this workflow and creates a workflow run.
-
-# STEP 4
-# GitHub provisions runner machines for jobs.
-
+# GitHub provisions runner VMs.
 
 # ============================================================
 # JOB EXECUTION ORDER
@@ -183,83 +217,29 @@ jobs:
 
 # job1 starts first.
 
-# job2 and job3 depend on job1 using:
-#   needs: job1
+# job2, job3, job4 depend on job1.
 
 # After job1 finishes:
-#   job2 and job3 start in parallel.
+# job2, job3, job4 start in parallel.
 
-
-# ============================================================
-# JOB1 PROCESS
-# ============================================================
-
-# Step1 prints runner environment information.
-
-# Step2 downloads repository code.
-
-# Step3 creates artifact files:
-
-#   myartifact.txt
-#   artifacts/list.txt
-#   artifacts/hostname.txt
-
-# Step4 uploads artifacts using different patterns:
-
-#   single file
-#   directory
-#   multiple paths
-#   exclusion pattern
-
-
-# ============================================================
-# JOB2 PROCESS
-# ============================================================
-
-# job2 starts after job1 completes.
-
-# Step1 prints current workspace.
-
-# Step2 downloads artifact:
-#   single-file
-
-# Step3 verifies the artifact exists in workspace.
-
-
-# ============================================================
-# JOB3 PROCESS
-# ============================================================
-
-# job3 also waits for job1.
-
-# Step1 prints workspace state.
-
-# Step2 downloads artifact:
-#   directory_artifacts
-
-# Step3 verifies downloaded directory.
-
-
-# ============================================================
-# PIPELINE ARCHITECTURE
-# ============================================================
+# Execution graph:
 
 #           job1
-#         (build artifacts)
-#          /        \
-#       job2       job3
-#   (download file) (download directory)
+#        (create artifacts)
+#         /     |      \
+#      job2   job3   job4
+#   (download) (download) (download to custom dirs)
 
 
 # ============================================================
 # IMPORTANT CONCEPT
 # ============================================================
 
-# GitHub runners are EPHEMERAL.
+# GitHub runners are ephemeral machines.
 
 # Each job runs on a new VM.
 
-# Files created in job1 do NOT exist in job2/job3
-# unless uploaded as artifacts.
+# Files created in job1 DO NOT exist in job2/3/4.
 
-# Artifacts allow data transfer between jobs.
+# Artifacts are used to persist files and transfer
+# them between jobs in a workflow.
