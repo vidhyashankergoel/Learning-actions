@@ -191,6 +191,10 @@ jobs:
           ls -ltr
         # verifies artifact has been downloaded
 
+#add step to fail job 2 
+      - name: step for PR demo 
+        run: exit 1 
+
 
 
 # ============================================================
@@ -264,3 +268,4 @@ jobs:
 # Files created in job1 do not exist in job2.
 
 # Artifacts allow transferring files between jobs.
+
