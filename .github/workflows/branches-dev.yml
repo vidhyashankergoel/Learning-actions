@@ -171,25 +171,8 @@ jobs:
 #   job2
 
 
-# ============================================================
-# WHAT THIS WORKFLOW DEMONSTRATES
-# ============================================================
-
-# branch filtering
-# artifact creation
-# artifact upload
-# artifact download
-# job dependencies using "needs"
-
-
-# ============================================================
-# IMPORTANT CONCEPT
-# ============================================================
-
-# GitHub runners are ephemeral.
-
-# Every job runs on a new VM.
 
 # Files created in job1 do not exist in job2.
 
 # Artifacts allow transferring files between jobs.
+
