@@ -3,15 +3,77 @@ name: branches   # Workflow name visible in GitHub Actions UI
 # ============================================================
 # WORKFLOW TRIGGER
 # ============================================================
-# This workflow runs when code is pushed to specific branches.
-# Only pushes to the branches listed below will trigger it.
+# GitHub Actions workflows start when specific EVENTS happen.
+#
+# Two events are configured here:
+#
+# 1) push
+# 2) pull_request
+#
+# PUSH EVENT
+# ----------
+# A push event occurs when someone sends commits to the remote
+# repository using:
+#
+#   git push origin <branch>
+#
+# Example:
+#
+#   git push origin dev
+#
+# When a push happens, GitHub checks the branch name and
+# triggers the workflow if it matches the configured branches.
+#
+# PULL REQUEST EVENT
+# ------------------
+# A pull request event occurs when a developer requests
+# to merge changes from one branch into another branch.
+#
+# Example:
+#
+# feature-login  ---->  main
+#
+# The developer opens a PR on GitHub UI requesting that
+# the feature branch be merged into main.
+#
+# The workflow runs automatically to validate the changes
+# before the merge happens.
+#
+# This is commonly used for:
+#
+#   running tests
+#   running security scans
+#   verifying build pipelines
+#
+# It helps protect important branches like "main".
 
 on:
+
+  # ==========================================================
+  # PUSH EVENT CONFIGURATION
+  # ==========================================================
   push:
     branches:
-      - dev            # runs when code is pushed to dev branch
-      - 'feature-*'    # runs for branches like feature-login, feature-api, feature-ui etc
+      - dev            # runs workflow when code is pushed to dev branch
+      - 'feature-*'    # runs for branches like feature-login, feature-api, feature-ui
       - main           # runs when code is pushed to main branch
+
+  # ==========================================================
+  # PULL REQUEST EVENT CONFIGURATION
+  # ==========================================================
+  pull_request:
+    branches:
+      - main
+      # This means:
+      # Run workflow when a pull request is opened,
+      # synchronized, or updated targeting the main branch.
+      #
+      # Example:
+      #
+      # feature-login  --->  main
+      #
+      # If someone opens a PR from feature-login into main,
+      # the workflow will execute.
 
 
 jobs:
@@ -43,7 +105,10 @@ jobs:
       - name: step-2 checkout repository
         uses: actions/checkout@v4
         # downloads repository source code into runner workspace
-        # required if workflow needs repo files
+        #
+        # Important:
+        # GitHub runners start with an empty workspace.
+        # checkout action pulls repository code into the runner.
 
 
       - name: step-3 create files for artifacts
@@ -133,27 +198,44 @@ jobs:
 # ============================================================
 
 # STEP 1
-# Developer pushes code to a branch.
+# A developer pushes code OR opens a pull request.
 
-# STEP 2
-# GitHub checks branch name.
-
-# Workflow runs ONLY if branch matches:
-
+# PUSH FLOW
+# ---------
+# Developer runs:
+#
+#   git push origin dev
+#
+# GitHub receives the push event.
+#
+# GitHub checks the branch name.
+#
+# If branch matches:
+#
 #   dev
 #   main
 #   feature-*
+#
+# the workflow starts.
 
 
-# EXAMPLES
-
-# feature-login     -> workflow runs
-# feature-payment   -> workflow runs
-# dev               -> workflow runs
-# main              -> workflow runs
-
-# bugfix-login      -> workflow does NOT run
-# staging           -> workflow does NOT run
+# PULL REQUEST FLOW
+# -----------------
+# Developer opens a pull request.
+#
+# Example:
+#
+# feature-login  --->  main
+#
+# GitHub triggers workflow to validate the PR.
+#
+# This allows teams to run:
+#
+#   tests
+#   builds
+#   security scans
+#
+# before merging code.
 
 
 # ============================================================
@@ -161,18 +243,24 @@ jobs:
 # ============================================================
 
 # job1 starts first
-
+#
 # job2 depends on job1
-
+#
 # execution graph
-
+#
 #   job1
 #    |
 #   job2
 
 
+# ============================================================
+# IMPORTANT CONCEPT
+# ============================================================
+
+# GitHub runners are ephemeral machines.
+
+# Each job runs on a fresh VM.
 
 # Files created in job1 do not exist in job2.
 
 # Artifacts allow transferring files between jobs.
-
