@@ -215,8 +215,7 @@ jobs:
     # This condition means:
     # Run this job ONLY when workflow is triggered from dev branch.
 
-    if: github.head_ref == 'dev'
-
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     steps:
 
       - name: referring environment variables
@@ -259,8 +258,7 @@ jobs:
     environment:
       name: PRODUCTION
 
-    if: github.ref == 'refs/heads/main'
-
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
 
       - name: referring environment variables
