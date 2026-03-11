@@ -7,7 +7,8 @@ name: github-actions   # Name of the workflow shown in the GitHub Actions UI
 # The workflow starts whenever a push event happens
 # in this repository (any branch).
 on:
-  push:                 # Trigger event
+  workflow_dispatch: 
+#  push:                 # Trigger event
 
 jobs:                   # A workflow must contain at least one job
 
