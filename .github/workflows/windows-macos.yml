@@ -5,7 +5,7 @@ name: windows-macos   # Workflow name visible in the GitHub Actions UI
 # ============================================================
 # This workflow will run automatically every time code is
 # pushed to any branch of this repository.
-on: push
+on: workflow_dispatch                           #push
 
 jobs:   # A workflow is composed of multiple jobs.
 
