@@ -14,7 +14,8 @@ name: stage-prod-env   # Workflow name shown in GitHub Actions UI
 on:
   push:
     branches:
-      - main   # Workflow runs when code is pushed to main branch
+      - main  # Workflow runs when code is pushed to main branch
+      - dev
 
 
   pull_request:
