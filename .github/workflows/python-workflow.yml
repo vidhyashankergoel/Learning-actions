@@ -1,8 +1,9 @@
 # ============================================================
 # WORKFLOW NAME
 # ============================================================
-# This name will appear in the GitHub Actions UI
-# under the Actions tab.
+# This name is what appears inside the GitHub Actions UI.
+# When someone opens the Actions tab they will see this workflow
+# listed with this name.
 
 name: python-workflow
 
@@ -10,10 +11,14 @@ name: python-workflow
 # ============================================================
 # WORKFLOW TRIGGERS
 # ============================================================
-# This workflow runs automatically when:
+# This section defines WHEN this workflow will run.
 #
-# 1. Code is pushed to the main branch
-# 2. A Pull Request is created or updated targeting main
+# The workflow runs in two cases:
+#
+# 1. When code is pushed directly to the main branch
+# 2. When a Pull Request is created or updated targeting main
+#
+# This is a common CI pattern used in most companies.
 
 on:
   push:
@@ -28,38 +33,42 @@ on:
 # ============================================================
 # JOB DEFINITIONS
 # ============================================================
-# Jobs define the tasks executed by the workflow.
-# Each job runs on a fresh virtual machine.
+# A workflow can contain multiple jobs.
+#
+# Important concept:
+# Each job runs on a fresh virtual machine called a "runner".
+#
+# This means jobs do NOT share files unless artifacts are used.
 
 jobs:
 
+
   # ==========================================================
-  # JOB: RUN PYTHON UNIT TESTS
+  # JOB 1 : UNIT TEST EXECUTION
   # ==========================================================
-  # This job performs CI validation for a Python project.
-  #
-  # Steps:
-  # 1. Download repository code
-  # 2. Install Python runtime
-  # 3. Install project dependencies
-  # 4. Execute unit tests
+  # Purpose of this job:
+#
+# - Validate the Python application
+# - Install dependencies
+# - Run automated tests
+# - Generate coverage reports
 
   unit-tests:
 
     name: Running unit test
 
-    # GitHub provides a fresh Ubuntu runner VM
+    # GitHub will automatically provision a Linux runner
     runs-on: ubuntu-latest
 
     steps:
 
       # ------------------------------------------------------
-      # STEP 1: CHECKOUT REPOSITORY CODE
+      # STEP 1 : DOWNLOAD REPOSITORY CODE
       # ------------------------------------------------------
-      # GitHub runners start with an empty filesystem.
+      # GitHub runners start with an EMPTY filesystem.
       #
-      # This action downloads the repository code
-      # to the runner workspace.
+      # So the first thing we must do is download the code
+      # from the repository to the runner machine.
 
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -67,12 +76,13 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 2: SETUP PYTHON RUNTIME
+      # STEP 2 : INSTALL PYTHON RUNTIME
       # ------------------------------------------------------
-      # This installs Python 3.10 on the runner.
+      # This action installs Python version 3.10
+      # on the runner machine.
       #
-      # Without this step the runner may not have
-      # the correct Python version.
+      # Without this step the runner might not have
+      # the correct Python version required by the project.
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -82,12 +92,15 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 3: INSTALL PROJECT DEPENDENCIES
+      # STEP 3 : INSTALL PROJECT DEPENDENCIES
       # ------------------------------------------------------
-      # Most Python projects require external libraries.
+      # Most Python projects depend on external libraries.
       #
-      # These dependencies are defined inside
-      # the file: requirements.txt
+      # These libraries are listed inside the file:
+      #
+      # requirements.txt
+      #
+      # pip is the Python package manager used to install them.
 
       - name: Installing Dependencies
         run: |
@@ -97,19 +110,35 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 4: RUN UNIT TESTS
+      # STEP 4 : RUN UNIT TESTS
       # ------------------------------------------------------
-      # pytest will automatically discover and execute
-      # test cases present in the repository.
+      # pytest is a popular testing framework for Python.
+      #
+      # This command does several things:
+      #
+      # creates a folder called reports/
+      # runs unit tests
+      # generates coverage report
+      # outputs results in XML format
 
       - name: Run unit tests
         run: |
-          mkdir reports/ 
+          mkdir reports/
           pytest --junitxml=reports/unit-test-results.xml --cov=. --cov-report=xml --cov-report=term-missing -v
 
 
-#upload the report generated in previous step as an artifact to GitHub Actions
-      - name: upload code coverage report 
+
+      # ------------------------------------------------------
+      # STEP 5 : UPLOAD TEST REPORTS
+      # ------------------------------------------------------
+      # GitHub runners are temporary.
+      #
+      # After the job finishes the runner disappears.
+      #
+      # So if we want to keep test reports we must upload them
+      # as artifacts.
+
+      - name: upload code coverage report
         uses: actions/upload-artifact@v3
         with:
           name: code-coverage-report
@@ -117,48 +146,90 @@ jobs:
 
 
 
-# ============================================================
-# WORKFLOW EXECUTION FLOW
-# ============================================================
-#
-# Step 1
-# A developer pushes code to the main branch
-# OR opens a pull request targeting main.
-#
-# Step 2
-# GitHub detects the event and triggers this workflow.
-#
-# Step 3
-# GitHub provisions a fresh runner:
-# ubuntu-latest
-#
-# Step 4
-# Job "unit-tests" begins execution.
-#
-# Step 5
-# Checkout step downloads the repository code
-# into the runner workspace.
-#
-# Step 6
-# Python 3.10 is installed using setup-python action.
-#
-# Step 7
-# pip upgrades itself to the latest version.
-#
-# Step 8
-# pip installs all project dependencies defined
-# inside requirements.txt.
-#
-# Step 9
-# pytest runs the unit test suite.
-#
-# Step 10
-# If all tests pass → workflow succeeds
-# If any test fails → workflow fails
-#
-# This mechanism ensures that broken code
-# never gets merged into the main branch.
-#
-# This is a fundamental concept of CI pipelines.
-#
-# ============================================================
+  # ==========================================================
+  # JOB 2 : CODEQL SECURITY SCAN
+  # ==========================================================
+  # This job performs automated security analysis on the code.
+  #
+  # CodeQL scans the source code for security vulnerabilities.
+
+  codeql:
+
+    name: CodeQL security scan
+
+    runs-on: ubuntu-latest
+
+
+    # ----------------------------------------------------------
+    # PERMISSIONS
+    # ----------------------------------------------------------
+    # GitHub Actions runs with limited permissions by default.
+    #
+    # CodeQL requires special permissions to upload
+    # security results to GitHub.
+
+    permissions:
+
+      actions: read
+      contents: read
+      security-events: write
+
+
+
+    # ----------------------------------------------------------
+    # MATRIX STRATEGY
+    # ----------------------------------------------------------
+    # Matrix allows running the job for multiple languages.
+    #
+    # Example:
+    #
+    # python
+    # javascript
+    # java
+    #
+    # Here we only scan Python.
+
+    strategy:
+
+      fail-fast: false
+
+      matrix:
+        language: ['python']
+
+
+
+    steps:
+
+      # ------------------------------------------------------
+      # STEP 1 : DOWNLOAD REPOSITORY CODE
+      # ------------------------------------------------------
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+
+      # ------------------------------------------------------
+      # STEP 2 : INITIALIZE CODEQL
+      # ------------------------------------------------------
+      # This step prepares the CodeQL engine.
+      #
+      # It creates a code database for the selected language.
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+
+
+
+      # ------------------------------------------------------
+      # STEP 3 : RUN SECURITY ANALYSIS
+      # ------------------------------------------------------
+      # This step runs security queries against
+      # the CodeQL database and reports vulnerabilities.
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "security"
