@@ -1,0 +1,271 @@
+name: stage-prod-env   # Workflow name shown in GitHub Actions UI
+
+# ============================================================
+# WORKFLOW TRIGGERS
+# ============================================================
+# This workflow runs when specific events happen in the repo.
+#
+# push
+#   Triggered when commits are pushed to the repository.
+#
+# pull_request
+#   Triggered when a PR is opened or updated targeting the branch listed below.
+
+on:
+  push:
+    branches:
+      - main  # Workflow runs when code is pushed to main branch
+      - dev
+
+
+  pull_request:
+    branches:
+      - main   # Workflow runs when PR targets main branch
+
+
+# ============================================================
+# GLOBAL ENVIRONMENT VARIABLES
+# ============================================================
+# These are workflow level environment variables.
+#
+# They are accessible in ALL jobs and ALL steps unless
+# overridden at job level or step level.
+#
+# Environment variables are NOT encrypted.
+# Therefore they should only contain NON-SENSITIVE values.
+
+env:
+  ENV_TYPE: Dev
+  APP_USER: vidhya101
+  APP_PORT: 80
+
+
+jobs:
+
+  # ==========================================================
+  # JOB 1 : CREATE AND UPLOAD ARTIFACTS
+  # ==========================================================
+  # Purpose:
+  # Demonstrates how artifacts are created and uploaded
+  # so they can be reused in later jobs.
+  #
+  # Important concept:
+  # Each job runs on a NEW virtual machine.
+  # Therefore files cannot be shared directly.
+  #
+  # Artifacts solve this problem.
+
+  job1:
+    name: job1
+    runs-on: ubuntu-latest   # GitHub provisions a new Ubuntu runner VM
+
+    steps:
+
+      - name: step-1 basic system information
+        run: |
+          pwd        # prints current working directory
+          ls -ltr    # lists files in workspace
+          hostname   # shows runner hostname
+
+      - name: step-2 checkout repository
+        uses: actions/checkout@v4
+        # This downloads the repository code to the runner.
+        #
+        # GitHub runners start with EMPTY filesystem,
+        # so checkout is required if you need repo files.
+
+      - name: step-3 create files for artifacts
+        run: |
+          echo `pwd` >> myartifact.txt
+          mkdir artifacts
+          echo `ls -ltr` >> artifacts/list.txt
+          echo `hostname` >> artifacts/hostname.txt
+
+        # Files created here will later be uploaded as artifacts.
+
+      - name: upload single file
+        uses: actions/upload-artifact@v4
+        with:
+          name: single-file
+          path: ./myartifact.txt
+
+        # upload-artifact action stores files generated in a job.
+        #
+        # These artifacts can later be downloaded by other jobs.
+
+
+
+  # ==========================================================
+  # JOB 2 : DOWNLOAD ARTIFACT AND USE ENV VARIABLES + SECRETS
+  # ==========================================================
+  # This job demonstrates:
+  #
+  # 1. Downloading artifacts
+  # 2. Using workflow environment variables
+  # 3. Using repository secrets
+
+  job2:
+    name: job2
+    runs-on: ubuntu-latest
+
+    needs: job1
+    # "needs" means job2 will start ONLY AFTER job1 completes successfully.
+
+    steps:
+
+      - name: check workspace before download
+        run: |
+          pwd
+          ls -ltr
+
+      - name: download single file artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: single-file
+
+        # This downloads artifact created in job1.
+
+      - name: referring workflow env variables
+        run: |
+          echo "[INFO] Running deployment for $ENV_TYPE with user $APP_USER."
+          echo "[INFO] Once deployment completes, application will be accessible on port $APP_PORT."
+
+        # Accessing workflow environment variables inside shell:
+        #
+        # $ENV_TYPE
+        # $APP_USER
+        # $APP_PORT
+
+      - name: referring repository secret
+        run: |
+          echo "[INFO] Application password is ${{ secrets.APP_PASSWORD }}."
+
+        # Accessing repository secret using expression syntax:
+        #
+        # ${{ secrets.SECRET_NAME }}
+        #
+        # Secrets are stored in:
+        # Repository → Settings → Secrets and Variables → Actions
+        #
+        # NOTE:
+        # In real production pipelines NEVER print secrets.
+
+
+
+  # ==========================================================
+  # JOB 3 : USING GITHUB CONTEXTS
+  # ==========================================================
+  # GitHub automatically provides runtime metadata called
+  # "contexts".
+  #
+  # These contain information about:
+  #
+  # event type
+  # triggering user
+  # branch name
+  # runner environment
+  #
+  # They are extremely useful in CI/CD logic.
+
+  job3:
+    name: job3
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: referring contexts and built-in values
+        run: |
+          echo "[INFO] Triggered by event: ${{ github.event_name }}"
+          echo "[INFO] Change made by user: ${{ github.actor }}"
+          echo "[INFO] Branch where change happened: ${{ github.head_ref }}"
+          echo "[INFO] Runner OS: ${{ runner.os }}"
+          echo "[INFO] Current Job ID: ${{ job.check_run_id }}"
+
+
+
+  # ==========================================================
+  # JOB 4 : STAGING DEPLOYMENT
+  # ==========================================================
+  # This job demonstrates how to deploy to a specific
+  # GitHub Environment.
+  #
+  # Environments allow storing:
+  #
+  # environment variables
+  # environment secrets
+  # protection rules
+  # required approvals
+
+  staging:
+    name: STAGE DEPLOYMENT
+    runs-on: ubuntu-latest
+
+    environment:
+      name: STAGING
+
+    # "if" condition controls when this job runs.
+    #
+    # github.ref contains the full reference path of the branch.
+    #
+    # Example values:
+    #
+    # refs/heads/main
+    # refs/heads/dev
+    # refs/pull/1/merge
+    #
+    # This condition means:
+    # Run this job ONLY when workflow is triggered from dev branch.
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    steps:
+
+      - name: referring environment variables
+        run: |
+          echo "[INFO] Running deployment on ${{ vars.HOST }} using ${{ vars.USER }}."
+
+        # vars.HOST and vars.USER are GitHub Variables.
+        #
+        # These are defined in:
+        #
+        # Repository Settings → Secrets and Variables → Variables
+        #
+        # Variables are NOT encrypted.
+
+      - name: referring environment secret
+        run: |
+          echo "[INFO] Password for ${{ vars.USER }} is ${{ secrets.PASSWORD }}."
+
+        # secrets.PASSWORD refers to an encrypted secret value.
+        #
+        # Secrets are encrypted and masked in logs.
+
+
+
+  # ==========================================================
+  # JOB 5 : PRODUCTION DEPLOYMENT
+  # ==========================================================
+  # This job demonstrates deploying to production environment.
+  #
+  # Production environments often have:
+  #
+  # approval rules
+  # stricter branch protection
+  # manual verification gates
+
+  production:
+    name: PRODUCTION DEPLOYMENT
+    runs-on: ubuntu-latest
+
+    environment:
+      name: PRODUCTION
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+
+      - name: referring environment variables
+        run: |
+          echo "[INFO] Running deployment on ${{ vars.HOST }} using ${{ vars.USER }}."
+
+      - name: referring environment secret
+        run: |
+          echo "[INFO] Password for ${{ vars.USER }} is ${{ secrets.PASSWORD }}."

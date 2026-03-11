@@ -1,17 +1,75 @@
 name: branches   # Workflow name visible in GitHub Actions UI
 
 # ============================================================
-# WORKFLOW TRIGGER
+# WORKFLOW TRIGGERS
 # ============================================================
-# This workflow runs when code is pushed to specific branches.
-# Only pushes to the branches listed below will trigger it.
+# GitHub Actions workflows run when specific EVENTS occur
+# in the repository.
+#
+# In this workflow we use two events:
+#
+# 1) push
+# 2) pull_request
+#
+# ------------------------------------------------------------
+# PUSH EVENT
+# ------------------------------------------------------------
+# A push event occurs when commits are sent to the remote
+# repository using a command like:
+#
+#   git push origin <branch-name>
+#
+# Example:
+#
+#   git push origin main
+#
+# When a push happens, GitHub checks the branch name.
+# If the branch matches the configuration below,
+# the workflow will start automatically.
+
+# ------------------------------------------------------------
+# PULL REQUEST EVENT
+# ------------------------------------------------------------
+# A pull request (PR) occurs when a developer proposes
+# merging one branch into another.
+#
+# Example:
+#
+# feature-login  --->  main
+#
+# The developer opens a Pull Request in the GitHub UI
+# requesting the feature branch be merged into main.
+#
+# Before the merge is allowed, CI workflows run to verify:
+#
+# • code builds successfully
+# • tests pass
+# • security scans succeed
+#
+# If any required checks fail, the PR cannot be merged
+# when branch protection rules are enabled.
 
 on:
+
+  # ==========================================================
+  # PUSH EVENT CONFIGURATION
+  # ==========================================================
   push:
     branches:
-      - dev            # runs when code is pushed to dev branch
-      - 'feature-*'    # runs for branches like feature-login, feature-api, feature-ui etc
-      - main           # runs when code is pushed to main branch
+      - main           # Workflow runs when commits are pushed to main
+
+  # ==========================================================
+  # PULL REQUEST EVENT CONFIGURATION
+  # ==========================================================
+  pull_request:
+    branches:
+      - main
+      # Workflow runs when a Pull Request targets the main branch.
+      #
+      # Events that trigger it include:
+      # - opening a PR
+      # - updating commits in a PR
+      # - synchronizing a PR with new commits
 
 
 jobs:
@@ -21,7 +79,7 @@ jobs:
   # ==========================================================
   job1:
     name: job1
-    runs-on: ubuntu-latest      # GitHub provisions an Ubuntu runner VM
+    runs-on: ubuntu-latest      # GitHub provides a fresh Ubuntu runner
 
     steps:
 
@@ -31,19 +89,22 @@ jobs:
           ls -ltr
           hostname
         # pwd
-        #   prints current working directory of runner
+        #   prints the current working directory of the runner
         #
         # ls -ltr
-        #   lists files in workspace
+        #   lists files in the workspace directory
         #
         # hostname
-        #   shows runner hostname
+        #   shows the hostname of the GitHub runner machine
 
 
       - name: step-2 checkout repository
         uses: actions/checkout@v4
-        # downloads repository source code into runner workspace
-        # required if workflow needs repo files
+        # GitHub runners start with an empty workspace.
+        #
+        # The checkout action downloads the repository
+        # contents into the runner so the workflow
+        # can access project files.
 
 
       - name: step-3 create files for artifacts
@@ -52,11 +113,17 @@ jobs:
           mkdir artifacts
           echo `ls -ltr` >> artifacts/list.txt
           echo `hostname` >> artifacts/hostname.txt
-        # files created:
+
+        # Files created in this step:
         #
         # myartifact.txt
+        #   contains the runner working directory
+        #
         # artifacts/list.txt
+        #   contains the output of ls -ltr
+        #
         # artifacts/hostname.txt
+        #   contains the hostname of the runner
 
 
       - name: upload single file
@@ -64,7 +131,11 @@ jobs:
         with:
           name: single-file
           path: ./myartifact.txt
-        # uploads a single artifact file
+
+        # Uploads a single file artifact.
+        #
+        # Artifacts are files saved by GitHub Actions
+        # so they can be used later by other jobs.
 
 
       - name: upload directory artifact
@@ -72,7 +143,9 @@ jobs:
         with:
           name: directory_artifacts
           path: artifacts/
-        # uploads entire directory
+
+        # Uploads the entire artifacts directory
+        # as a single artifact package.
 
 
       - name: upload multiple paths
@@ -82,7 +155,9 @@ jobs:
           path: |
             ./myartifact.txt
             artifacts/
-        # uploads both file and directory
+
+        # Uploads multiple paths together
+        # under a single artifact name.
 
 
       - name: upload multiple paths with exclusion
@@ -93,16 +168,19 @@ jobs:
             ./myartifact.txt
             artifacts/
             !**/hostname.txt
-        # uploads files but excludes hostname.txt
+
+        # Uploads files but excludes hostname.txt.
+        #
+        # "!" is used to exclude files using glob patterns.
 
 
   # ==========================================================
-  # JOB 2 : DOWNLOAD SINGLE FILE ARTIFACT
+  # JOB 2 : DOWNLOAD ARTIFACT
   # ==========================================================
   job2:
     name: job2
     runs-on: ubuntu-latest
-    needs: job1                 # job2 starts only after job1 finishes
+    needs: job1     # job2 will start only after job1 finishes successfully
 
     steps:
 
@@ -110,22 +188,48 @@ jobs:
         run: |
           pwd
           ls -ltr
-        # shows workspace before artifact download
+
+        # Shows the workspace contents before
+        # downloading artifacts.
 
 
       - name: download single file artifact
         uses: actions/download-artifact@v4
         with:
           name: single-file
-        # downloads artifact created in job1
+
+        # Downloads the artifact created in job1.
 
 
       - name: check workspace after download
         run: |
           pwd
           ls -ltr
-        # verifies artifact has been downloaded
 
+        # Verifies that the artifact was downloaded
+        # successfully into the workspace.
+
+
+      # ======================================================
+      # STEP TO DEMONSTRATE FAILED CHECKS
+      # ======================================================
+      - name: intentionally fail job for PR protection demo
+        run: exit 0
+
+        # exit 1 forces the step to fail.
+        #
+        # This is useful when demonstrating:
+        #
+        # • pull request checks
+        # • branch protection rules
+        # • required CI checks before merge
+        #
+        # When this step fails:
+        #
+        # job2 = FAILED
+        #
+        # If branch protection requires successful checks,
+        # GitHub will BLOCK the PR merge.
 
 
 # ============================================================
@@ -133,38 +237,40 @@ jobs:
 # ============================================================
 
 # STEP 1
-# Developer pushes code to a branch.
+# A developer pushes code OR opens a pull request.
 
-# STEP 2
-# GitHub checks branch name.
+# ------------------------------------------------------------
+# PUSH FLOW
+# ------------------------------------------------------------
+#
+# Developer runs:
+#
+#   git push origin main
+#
+# GitHub detects the push event and triggers this workflow.
 
-# Workflow runs ONLY if branch matches:
 
-#   dev
-#   main
-#   feature-*
-
-
-# EXAMPLES
-
-# feature-login     -> workflow runs
-# feature-payment   -> workflow runs
-# dev               -> workflow runs
-# main              -> workflow runs
-
-# bugfix-login      -> workflow does NOT run
-# staging           -> workflow does NOT run
+# ------------------------------------------------------------
+# PULL REQUEST FLOW
+# ------------------------------------------------------------
+#
+# Example:
+#
+# feature-login  --->  main
+#
+# When the PR is opened, GitHub runs this workflow
+# to validate the code before merging.
 
 
 # ============================================================
 # JOB EXECUTION ORDER
 # ============================================================
 
-# job1 starts first
-
+# job1 runs first
+#
 # job2 depends on job1
 
-# execution graph
+# Execution graph:
 
 #   job1
 #    |
@@ -172,24 +278,20 @@ jobs:
 
 
 # ============================================================
-# WHAT THIS WORKFLOW DEMONSTRATES
-# ============================================================
-
-# branch filtering
-# artifact creation
-# artifact upload
-# artifact download
-# job dependencies using "needs"
-
-
-# ============================================================
 # IMPORTANT CONCEPT
 # ============================================================
 
-# GitHub runners are ephemeral.
+# GitHub runners are EPHEMERAL machines.
 
-# Every job runs on a new VM.
+# Each job runs on a completely fresh virtual machine.
 
-# Files created in job1 do not exist in job2.
+# Therefore:
+#
+# Files created in job1 DO NOT exist in job2 automatically.
 
-# Artifacts allow transferring files between jobs.
+# To transfer files between jobs we use:
+
+# ARTIFACTS
+
+# upload-artifact  -> store files
+# download-artifact -> retrieve files

@@ -1,0 +1,332 @@
+name: repo-sec   # Workflow name visible in GitHub Actions UI
+
+# ============================================================
+# WORKFLOW TRIGGER
+# ============================================================
+# This workflow runs when code is pushed to specific branches.
+# Only pushes to the branches listed below will trigger it.
+
+on:
+  push:
+    branches:
+      - main           # Runs when code is pushed to main branch
+  pull_request:
+    branches:
+      - main           # Runs when a PR is created or updated targeting main
+
+
+# ============================================================
+# GLOBAL ENVIRONMENT VARIABLES
+# ============================================================
+# These variables are available to ALL jobs and ALL steps
+# inside this workflow unless overridden at job or step level.
+
+env:
+  ENV_TYPE: Dev
+  APP_USER: vidhya101
+  APP_PORT: 80
+
+
+jobs:
+
+  # ==========================================================
+  # JOB 1 : CREATE AND UPLOAD ARTIFACTS
+  # ==========================================================
+  job1:
+    name: job1
+    runs-on: ubuntu-latest      # GitHub provisions a fresh Ubuntu runner VM
+
+    steps:
+
+      - name: step-1 basic system information
+        run: |
+          pwd
+          ls -ltr
+          hostname
+        # pwd
+        #   Prints the current working directory of the runner
+        #
+        # ls -ltr
+        #   Lists files present in the workspace
+        #
+        # hostname
+        #   Displays the hostname of the runner VM
+
+
+      - name: step-2 checkout repository
+        uses: actions/checkout@v4
+        # Downloads repository source code to the runner workspace
+        #
+        # GitHub runners start with an empty filesystem,
+        # so checkout is required if workflow needs repo files.
+
+
+      - name: step-3 create files for artifacts
+        run: |
+          echo `pwd` >> myartifact.txt
+          mkdir artifacts
+          echo `ls -ltr` >> artifacts/list.txt
+          echo `hostname` >> artifacts/hostname.txt
+
+        # Files created:
+        #
+        # myartifact.txt
+        # artifacts/list.txt
+        # artifacts/hostname.txt
+
+
+      - name: upload single file
+        uses: actions/upload-artifact@v4
+        with:
+          name: single-file
+          path: ./myartifact.txt
+
+        # Uploads a single file as an artifact
+        #
+        # Artifacts allow sharing files between jobs.
+
+
+      - name: upload directory artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: directory_artifacts
+          path: artifacts/
+
+        # Uploads entire directory as artifact
+
+
+      - name: upload multiple paths
+        uses: actions/upload-artifact@v4
+        with:
+          name: multiple-paths
+          path: |
+            ./myartifact.txt
+            artifacts/
+
+        # Uploads multiple paths under one artifact name
+
+
+      - name: upload multiple paths with exclusion
+        uses: actions/upload-artifact@v4
+        with:
+          name: multiple-paths-with-exclusion
+          path: |
+            ./myartifact.txt
+            artifacts/
+            !**/hostname.txt
+
+        # Uploads files but excludes hostname.txt
+        #
+        # "!" is used for exclusion patterns
+
+
+  # ==========================================================
+  # JOB 2 : DOWNLOAD SINGLE FILE ARTIFACT
+  # ==========================================================
+  job2:
+    name: job2
+    runs-on: ubuntu-latest
+    needs: job1
+
+    steps:
+
+      - name: check workspace before download
+        run: |
+          pwd
+          ls -ltr
+
+        # Shows workspace before artifact download
+
+
+      - name: download single file artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: single-file
+
+        # Downloads artifact created in job1
+
+
+      - name: Referring Env variable
+        run: |
+          echo "[INFO] Running deployment for $ENV_TYPE with user $APP_USER."
+          echo "[INFO] Once deployment completes, application will be accessible on port $APP_PORT."
+
+        # Here we are referencing environment variables
+        #
+        # $ENV_TYPE
+        # $APP_USER
+        # $APP_PORT
+        #
+        # These values come from the workflow-level env block.
+
+
+      - name: referring repo secret
+        run: |
+          echo "[INFO] Application password is ${{ secrets.APP_PASSWORD }}."
+
+        # This step demonstrates how to access a repository secret.
+        #
+        # ${ { secrets.APP_PASSWORD } }
+        #
+        # "APP_PASSWORD" must be created in:
+        #
+        # Repository → Settings → Secrets and Variables → Actions → New Repository Secret
+
+
+
+# ============================================================
+# REPOSITORY SECRETS EXPLAINED
+# ============================================================
+
+# What are Repository Secrets?
+#
+# Repository secrets are encrypted variables used to store
+# sensitive information securely inside GitHub.
+#
+# Examples of sensitive data:
+#
+# passwords
+# API tokens
+# SSH keys
+# cloud credentials
+# database connection strings
+# Docker registry credentials
+#
+# These secrets are stored encrypted and are only available
+# during workflow execution.
+
+
+# ============================================================
+# WHY SECRETS EXIST
+# ============================================================
+
+# Storing credentials directly in code is extremely dangerous.
+
+# Example of BAD practice:
+
+# run: docker login -u admin -p mypassword
+
+
+# Instead we store sensitive data inside GitHub Secrets.
+
+# Example of GOOD practice:
+
+# run: docker login -u admin -p ${{ secrets.DOCKER_PASSWORD }}
+
+# This ensures credentials are not exposed in the repository.
+
+
+# ============================================================
+# HOW TO CREATE A REPOSITORY SECRET
+# ============================================================
+
+# Steps:
+
+# 1) Go to your GitHub repository
+# 2) Click "Settings"
+# 3) Click "Secrets and variables"
+# 4) Click "Actions"
+# 5) Click "New repository secret"
+# 6) Add:
+
+# Name: APP_PASSWORD
+# Value: your_secret_value
+
+
+# ============================================================
+# HOW TO ACCESS A SECRET IN WORKFLOW
+# ============================================================
+
+# Secrets are accessed using the secrets context.
+
+# Syntax:
+
+# ${{ secrets.SECRET_NAME }}
+
+# Example:
+
+# ${{ secrets.APP_PASSWORD }}
+
+
+# ============================================================
+# IMPORTANT SECURITY BEHAVIOR
+# ============================================================
+
+# If a secret appears in workflow logs,
+# GitHub automatically masks it.
+
+# Example:
+
+# password=********
+
+# Even if someone prints it accidentally,
+# GitHub will hide the actual value.
+
+
+# ============================================================
+# WHERE SECRETS CAN BE STORED
+# ============================================================
+
+# GitHub supports three secret levels:
+
+# 1) Repository secrets
+#    Only available in one repository.
+
+# 2) Organization secrets
+#    Shared across multiple repositories.
+
+# 3) Environment secrets
+#    Used for environment-based deployments
+#    (dev, staging, production).
+
+
+# ============================================================
+# COMMON REAL-WORLD CI/CD USE CASES
+# ============================================================
+
+# Secrets are used for:
+
+# AWS credentials
+# Azure service principals
+# Kubernetes kubeconfig
+# Docker registry authentication
+# Slack webhook tokens
+# Terraform cloud tokens
+# Database passwords
+
+
+# Example production deployment
+
+# run: |
+#   docker login -u ${{ secrets.DOCKER_USER }} \
+#                -p ${{ secrets.DOCKER_PASSWORD }}
+
+
+# ============================================================
+# IMPORTANT NOTE
+# ============================================================
+
+# Environment variables are NOT secure.
+#
+# Never store passwords or tokens in env variables.
+#
+# Always use GitHub Secrets for sensitive data.
+
+
+# ============================================================
+# BEST PRACTICE
+# ============================================================
+
+# Use env variables for:
+#
+# configuration
+# ports
+# application names
+# versions
+#
+# Use secrets for:
+#
+# credentials
+# passwords
+# API keys
+# tokens
