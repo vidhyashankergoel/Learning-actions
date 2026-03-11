@@ -5,14 +5,8 @@ name: stage-prod-env   # Workflow name shown in GitHub Actions UI
 # ============================================================
 # This workflow runs on:
 # 1. push to main
-# 2. pull request targeting main
-#
-# push
-#   Triggered when commits are pushed to the repository
-#
-# pull_request
-#   Triggered when a PR is opened, updated, or synchronized
-#   against the target branch listed below
+# 2. push to dev
+# 3. pull request targeting main
 
 on:
   push:
@@ -28,21 +22,6 @@ on:
 # ============================================================
 # GLOBAL ENVIRONMENT VARIABLES
 # ============================================================
-# These are normal workflow environment variables.
-# They are available to all jobs and all steps unless overridden
-# at job level or step level.
-#
-# Important:
-# Environment variables are NOT secure storage.
-# Use them for normal configuration values such as:
-# app name
-# environment type
-# ports
-# feature flags
-# region names
-#
-# Do NOT store passwords, tokens, or API keys here.
-# Sensitive values must go into GitHub Secrets instead.
 
 env:
   ENV_TYPE: Dev
@@ -57,7 +36,7 @@ jobs:
   # ==========================================================
   job1:
     name: job1
-    runs-on: ubuntu-latest   # GitHub starts a fresh Ubuntu runner VM for this job
+    runs-on: ubuntu-latest
 
     steps:
       - name: step-1 basic system information
@@ -65,19 +44,9 @@ jobs:
           pwd
           ls -ltr
           hostname
-        # pwd
-        #   Prints current working directory of the runner
-        #
-        # ls -ltr
-        #   Lists files in current workspace
-        #
-        # hostname
-        #   Prints hostname of the runner VM
 
       - name: step-2 checkout repository
         uses: actions/checkout@v4
-        # Runners start with an empty workspace.
-        # This action downloads repository code into the runner.
 
       - name: step-3 create files for artifacts
         run: |
@@ -85,79 +54,47 @@ jobs:
           mkdir artifacts
           echo `ls -ltr` >> artifacts/list.txt
           echo `hostname` >> artifacts/hostname.txt
-        # Creates files that will later be uploaded as artifacts.
-        #
-        # myartifact.txt
-        #   stores current working directory
-        #
-        # artifacts/list.txt
-        #   stores file listing
-        #
-        # artifacts/hostname.txt
-        #   stores runner hostname
 
       - name: upload single file
         uses: actions/upload-artifact@v4
         with:
           name: single-file
           path: ./myartifact.txt
-        # Uploads one file as an artifact.
-        # Artifacts are used to move files between jobs because
-        # each job runs on a separate fresh VM.
 
 
 
   # ==========================================================
-  # JOB 2 : DOWNLOAD ARTIFACT AND USE WORKFLOW ENV + REPO SECRET
+  # JOB 2 : DOWNLOAD ARTIFACT AND USE WORKFLOW ENV + SECRET
   # ==========================================================
   job2:
     name: job2
     runs-on: ubuntu-latest
-    needs: job1   # job2 starts only after job1 succeeds
+    needs: job1
 
     steps:
       - name: check workspace before download
         run: |
           pwd
           ls -ltr
-        # Shows workspace state before artifact download
 
       - name: download single file artifact
         uses: actions/download-artifact@v4
         with:
           name: single-file
-        # Downloads the artifact produced in job1
 
       - name: referring workflow env variables
         run: |
           echo "[INFO] Running deployment for $ENV_TYPE with user $APP_USER."
           echo "[INFO] Once deployment completes, application will be accessible on port $APP_PORT."
-        # Accessing workflow-level env variables inside shell:
-        #
-        # $ENV_TYPE
-        # $APP_USER
-        # $APP_PORT
-        #
-        # These are normal environment variables and are safe for
-        # non-sensitive config values.
 
       - name: referring repository secret
         run: |
           echo "[INFO] Application password is ${{ secrets.APP_PASSWORD }}."
-        # Accessing a repository secret using:
-        #
-        # ${{ secrets.APP_PASSWORD }}
-        #
-        # Repository secret setup path:
-        # Repository -> Settings -> Secrets and variables -> Actions
-        #
-        # Important:
-        # This is only for demo. In real projects do NOT echo secrets.
-        # Even though GitHub masks them, best practice is to avoid printing.
+
 
 
   # ==========================================================
-  # JOB 3 : USING CONTEXTS AND BUILT-IN RUNTIME INFORMATION
+  # JOB 3 : USING CONTEXTS AND BUILT-IN VARIABLES
   # ==========================================================
   job3:
     name: job3
@@ -171,264 +108,82 @@ jobs:
           echo "[INFO] Branch where change happened: ${{ github.ref_name }}"
           echo "[INFO] Runner OS: ${{ runner.os }}"
           echo "[INFO] Current Job ID: ${{ job.check_run_id }}"
-        # Contexts are runtime objects provided by GitHub Actions.
-        #
-        # github.event_name
-        #   which event triggered workflow, such as push or pull_request
-        #
-        # github.actor
-        #   username that triggered workflow
-        #
-        # github.ref_name
-        #   short branch or tag name
-        #
-        # runner.os
-        #   operating system of current runner
-        #
-        # job.check_run_id
-        #   internal check run id for current job
+
 
 
   # ==========================================================
-  # JOB 4 : STAGING DEPLOYMENT USING GITHUB ENVIRONMENT
+  # JOB 4 : STAGING DEPLOYMENT
   # ==========================================================
   staging:
     name: STAGE DEPLOYMENT
     runs-on: ubuntu-latest
+
+    # staging should only run when code is pushed to dev
+    # prevents PR deployments and matches environment rule
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+
+    needs: [job1, job2, job3]
+
     environment:
       name: STAGING
-    # This job is attached to the GitHub Environment named STAGING.
-    #
-    # What is a GitHub Environment?
-    # It is a deployment-specific configuration layer where you can store:
-    # 1. Environment Variables
-    # 2. Environment Secrets
-    # 3. Deployment protection rules
-    #
-    # Example environments:
-    # STAGING
-    # PRODUCTION
-    #
-    # Why we need environments:
-    # Different deployment targets need different config and secrets.
-    #
-    # Example:
-    # STAGING may use:
-    # HOST = stage.example.com
-    # USER = stage-user
-    # PASSWORD = stage-password
-    #
-    # PRODUCTION may use:
-    # HOST = prod.example.com
-    # USER = prod-user
-    # PASSWORD = prod-password
-    #
-    # This prevents mixing stage config with production config.
 
     steps:
       - name: referring environment variables
         run: |
           echo "[INFO] Running deployment on ${{ vars.HOST }} using ${{ vars.USER }}."
-        # vars.HOST and vars.USER are GitHub Variables.
-        #
-        # Variables can exist at:
-        # organization level
-        # repository level
-        # environment level
-        #
-        # When this job declares environment: STAGING,
-        # environment-level vars for STAGING become available.
-        #
-        # Access syntax:
-        # ${{ vars.VARIABLE_NAME }}
 
       - name: referring environment secret
         run: |
           echo "[INFO] Password for ${{ vars.USER }} is ${{ secrets.PASSWORD }}."
-        # secrets.PASSWORD refers to the secret named PASSWORD.
-        #
-        # Since this job is bound to STAGING environment,
-        # the environment secret PASSWORD from STAGING is used.
-        #
-        # Access syntax:
-        # ${{ secrets.SECRET_NAME }}
-        #
-        # Again, for real deployments do NOT print secrets.
-        # Use them only for login, authentication, or connection commands.
+
 
 
   # ==========================================================
-  # JOB 5 : PRODUCTION DEPLOYMENT USING GITHUB ENVIRONMENT
+  # JOB 5 : PRODUCTION DEPLOYMENT
   # ==========================================================
   production:
     name: PRODUCTION DEPLOYMENT
     runs-on: ubuntu-latest
+
+    # production should only run when pushing to main
+    # prevents PR deployment errors like refs/pull/1/merge
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    needs: [job1, job2, job3]
+
     environment:
       name: PRODUCTION
-    # This job is attached to PRODUCTION environment.
-    #
-    # In real projects, PRODUCTION environment commonly has:
-    # stricter secrets
-    # different host/user values
-    # approval rules before job can run
-    #
-    # Example:
-    # GitHub can pause this job until an approver allows deployment.
 
     steps:
       - name: referring environment variables
         run: |
           echo "[INFO] Running deployment on ${{ vars.HOST }} using ${{ vars.USER }}."
-        # Uses PRODUCTION environment variable values because
-        # this job is attached to PRODUCTION environment
 
       - name: referring environment secret
         run: |
           echo "[INFO] Password for ${{ vars.USER }} is ${{ secrets.PASSWORD }}."
-        # Uses PRODUCTION environment secret named PASSWORD
 
-
-# ============================================================
-# HOW TO SET UP GITHUB ENVIRONMENTS
-# ============================================================
-#
-# Steps:
-#
-# 1. Open repository
-# 2. Go to Settings
-# 3. Go to Environments
-# 4. Create environment named STAGING
-# 5. Add:
-#    Variables:
-#      HOST
-#      USER
-#    Secrets:
-#      PASSWORD
-#
-# 6. Create environment named PRODUCTION
-# 7. Add:
-#    Variables:
-#      HOST
-#      USER
-#    Secrets:
-#      PASSWORD
-#
-# Optional:
-# Add required reviewers for PRODUCTION before deployment runs
 
 
 # ============================================================
-# WHAT ARE ENV VARIABLES
+# COMPLETE PIPELINE FLOW
 # ============================================================
-#
-# Environment variables are normal key-value pairs used for
-# non-sensitive configuration.
-#
-# Examples:
-# ENV_TYPE
-# APP_USER
-# APP_PORT
-#
-# They are useful for:
-# app configuration
-# deployment mode
-# ports
-# regions
-# names
-#
-# How to call them in shell:
-# $VARIABLE_NAME
-#
-# Example:
-# $ENV_TYPE
-#
-# How to call them in expressions:
-# ${{ env.ENV_TYPE }}
 
+# Pull Request → main
+# job1
+# job2
+# job3
+# staging skipped
+# production skipped
 
-# ============================================================
-# WHAT ARE GITHUB VARIABLES
-# ============================================================
-#
-# GitHub Variables are reusable configuration values managed in
-# GitHub Settings instead of inside YAML.
-#
-# Examples:
-# HOST
-# USER
-# APP_NAME
-#
-# They are useful when many workflows need the same value.
-#
-# How to call them:
-# ${{ vars.VARIABLE_NAME }}
+# Push → dev
+# job1
+# job2
+# job3
+# staging deploy
 
-
-# ============================================================
-# WHAT ARE SECRETS
-# ============================================================
-#
-# Secrets are encrypted sensitive values stored in GitHub.
-#
-# Examples:
-# PASSWORD
-# API_KEY
-# AWS_SECRET_ACCESS_KEY
-# DOCKER_PASSWORD
-#
-# Why we need them:
-# Sensitive values must not be hardcoded in workflow files.
-#
-# How to call them:
-# ${{ secrets.SECRET_NAME }}
-#
-# Example:
-# ${{ secrets.PASSWORD }}
-
-
-# ============================================================
-# DIFFERENCE BETWEEN ENV, VARS, AND SECRETS
-# ============================================================
-#
-# env
-#   normal variables defined in YAML
-#   good for temporary workflow config
-#
-# vars
-#   normal non-sensitive variables managed in GitHub Settings
-#   good for reusable config across workflows
-#
-# secrets
-#   encrypted sensitive values managed in GitHub Settings
-#   good for passwords, tokens, keys
-
-
-# ============================================================
-# COMPLETE WORKFLOW FLOW IN SIMPLE TERMS
-# ============================================================
-#
-# 1. Workflow starts on push to main or PR to main
-#
-# 2. job1 runs first
-#    - collects runner information
-#    - creates files
-#    - uploads artifacts
-#
-# 3. job2 runs after job1
-#    - downloads artifact
-#    - uses workflow env variables
-#    - uses repository secret
-#
-# 4. job3 runs independently
-#    - prints context information like actor, branch, event, OS
-#
-# 5. staging job runs after job1, job2, job3
-#    - attached to STAGING environment
-#    - uses STAGING vars and STAGING secrets
-#
-# 6. production job runs after staging
-#    - attached to PRODUCTION environment
-#    - uses PRODUCTION vars and PRODUCTION secrets
-#
-# This is a common enterprise flow:
-# build -> validate -> stage deploy -> production deploy
+# Push → main
+# job1
+# job2
+# job3
+# production deploy
