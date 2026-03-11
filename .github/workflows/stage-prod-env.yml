@@ -104,34 +104,7 @@ jobs:
         # Artifacts are used to move files between jobs because
         # each job runs on a separate fresh VM.
 
-      - name: upload directory artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: directory_artifacts
-          path: artifacts/
-        # Uploads the full artifacts directory
-
-      - name: upload multiple paths
-        uses: actions/upload-artifact@v4
-        with:
-          name: multiple-paths
-          path: |
-            ./myartifact.txt
-            artifacts/
-        # Uploads both a file and a directory under one artifact name
-
-      - name: upload multiple paths with exclusion
-        uses: actions/upload-artifact@v4
-        with:
-          name: multiple-paths-with-exclusion
-          path: |
-            ./myartifact.txt
-            artifacts/
-            !**/hostname.txt
-        # Uploads multiple paths but excludes hostname.txt
-        # ! is used as exclusion pattern
-
-
+   
   # ==========================================================
   # JOB 2 : DOWNLOAD ARTIFACT AND USE WORKFLOW ENV + REPO SECRET
   # ==========================================================
