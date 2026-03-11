@@ -1,117 +1,106 @@
 # ============================================================
 # WORKFLOW NAME
 # ============================================================
-# This name appears in the GitHub Actions UI
-# under the Actions tab for this repository
+# This name will appear in the GitHub Actions UI
+# under the Actions tab.
+
 name: python-workflow
 
 
 # ============================================================
 # WORKFLOW TRIGGERS
 # ============================================================
-# This workflow will start automatically when:
+# This workflow runs automatically when:
 #
 # 1. Code is pushed to the main branch
-# 2. A Pull Request is opened or updated targeting the main branch
-#
-# These triggers are commonly used for CI pipelines.
+# 2. A Pull Request is created or updated targeting main
 
-on: 
+on:
   push:
     branches:
-      - main        # Runs workflow when commits are pushed to main branch
+      - main
 
   pull_request:
     branches:
-      - main        # Runs workflow when a PR targets main branch
+      - main
 
 
 # ============================================================
 # JOB DEFINITIONS
 # ============================================================
-# A workflow can contain multiple jobs.
-# Each job runs on a fresh virtual machine (runner).
-#
-# Jobs run in parallel by default unless dependencies are defined.
+# Jobs define the tasks executed by the workflow.
+# Each job runs on a fresh virtual machine.
 
 jobs:
 
-
   # ==========================================================
-  # JOB : UNIT TEST EXECUTION
+  # JOB: RUN PYTHON UNIT TESTS
   # ==========================================================
-  # Purpose:
-  # This job validates the application by running unit tests.
+  # This job performs CI validation for a Python project.
   #
-  # It performs the following:
-  # - Downloads the repository code
-  # - Installs Python runtime
-  # - Installs project dependencies
-  # - Executes unit tests
+  # Steps:
+  # 1. Download repository code
+  # 2. Install Python runtime
+  # 3. Install project dependencies
+  # 4. Execute unit tests
 
   unit-tests:
 
-    name: Running unit test      # Friendly job name visible in GitHub UI
+    name: Running unit test
 
-    runs-on: ubuntu-latest       # GitHub will provision a fresh Ubuntu VM runner
+    # GitHub provides a fresh Ubuntu runner VM
+    runs-on: ubuntu-latest
 
     steps:
 
-    # ----------------------------------------------------------
-    # STEP 1 : CHECKOUT REPOSITORY CODE
-    # ----------------------------------------------------------
-    # GitHub runners start with an EMPTY filesystem.
-    #
-    # This step downloads the repository source code
-    # into the runner workspace so that the pipeline
-    # can access project files.
+      # ------------------------------------------------------
+      # STEP 1: CHECKOUT REPOSITORY CODE
+      # ------------------------------------------------------
+      # GitHub runners start with an empty filesystem.
+      #
+      # This action downloads the repository code
+      # to the runner workspace.
 
-      - name: Checkout COde
-        uses: actions/checkout@v6.0.2
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
 
-    # ----------------------------------------------------------
-    # STEP 2 : SETUP PYTHON RUNTIME
-    # ----------------------------------------------------------
-    # This installs Python version 3.10 on the runner.
-    #
-    # Without this step the runner would not know
-    # which Python version to use.
-    #
-    # The action also configures PATH so that python
-    # commands work automatically.
 
-      - name: setup python
-        uses: actions/setup-python@v6.2.0
+      # ------------------------------------------------------
+      # STEP 2: SETUP PYTHON RUNTIME
+      # ------------------------------------------------------
+      # This installs Python 3.10 on the runner.
+      #
+      # Without this step the runner may not have
+      # the correct Python version.
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
 
-    # ----------------------------------------------------------
-    # STEP 3 : INSTALL APPLICATION DEPENDENCIES
-    # ----------------------------------------------------------
-    # Most Python applications depend on external libraries.
-    #
-    # These dependencies are listed inside requirements.txt.
-    #
-    # The commands below perform two actions:
-    #
-    # 1. Upgrade pip package manager
-    # 2. Install project dependencies
+
+      # ------------------------------------------------------
+      # STEP 3: INSTALL PROJECT DEPENDENCIES
+      # ------------------------------------------------------
+      # Most Python projects require external libraries.
+      #
+      # These dependencies are defined inside
+      # the file: requirements.txt
 
       - name: Installing Dependencies
         run: |
-           python -m pip install --upgrade pip     # upgrades pip to latest version
-           pip install -y requirement.txt          # installs dependencies listed in requirements file
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
 
-    # ----------------------------------------------------------
-    # STEP 4 : EXECUTE UNIT TESTS
-    # ----------------------------------------------------------
-    # pytest is a popular Python testing framework.
-    #
-    # "-v" enables verbose mode which shows
-    # detailed output of each test case.
+
+      # ------------------------------------------------------
+      # STEP 4: RUN UNIT TESTS
+      # ------------------------------------------------------
+      # pytest will automatically discover and execute
+      # test cases present in the repository.
 
       - name: Run unit tests
         run: pytest -v
@@ -119,53 +108,47 @@ jobs:
 
 
 # ============================================================
-# WORKFLOW EXECUTION FLOW (EXPLANATION)
+# WORKFLOW EXECUTION FLOW
 # ============================================================
 #
-# The complete flow of this workflow looks like this:
+# Step 1
+# A developer pushes code to the main branch
+# OR opens a pull request targeting main.
 #
-# 1. Developer pushes code to the main branch
-#    OR opens a Pull Request targeting main.
+# Step 2
+# GitHub detects the event and triggers this workflow.
 #
-# 2. GitHub Actions detects the event trigger.
+# Step 3
+# GitHub provisions a fresh runner:
+# ubuntu-latest
 #
-# 3. GitHub provisions a fresh runner VM:
-#       ubuntu-latest
+# Step 4
+# Job "unit-tests" begins execution.
 #
-# 4. The job "unit-tests" starts executing.
+# Step 5
+# Checkout step downloads the repository code
+# into the runner workspace.
 #
-# 5. Step 1 (Checkout Code)
-#       The repository source code is downloaded
-#       to the runner workspace.
+# Step 6
+# Python 3.10 is installed using setup-python action.
 #
-# 6. Step 2 (Setup Python)
-#       Python 3.10 runtime is installed and configured.
+# Step 7
+# pip upgrades itself to the latest version.
 #
-# 7. Step 3 (Install Dependencies)
-#       pip installs all packages required by the application.
+# Step 8
+# pip installs all project dependencies defined
+# inside requirements.txt.
 #
-# 8. Step 4 (Run Tests)
-#       pytest runs all test files inside the repository.
+# Step 9
+# pytest runs the unit test suite.
 #
-# 9. GitHub collects the results:
+# Step 10
+# If all tests pass → workflow succeeds
+# If any test fails → workflow fails
 #
-#       If tests PASS  → workflow succeeds
-#       If tests FAIL  → workflow fails
+# This mechanism ensures that broken code
+# never gets merged into the main branch.
 #
-# 10. The result appears in:
-#
-#       Repository → Actions tab
-#
-# ============================================================
-# WHY THIS PIPELINE IS IMPORTANT
-# ============================================================
-#
-# Running automated tests in CI ensures:
-#
-# - Code changes do not break existing functionality
-# - Bugs are detected early
-# - Pull requests are validated before merging
-#
-# This is a core principle of modern CI/CD pipelines.
+# This is a fundamental concept of CI pipelines.
 #
 # ============================================================
