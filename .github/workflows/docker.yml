@@ -348,6 +348,7 @@ jobs:
           file: ./Dockerfile
           tags: vidhya101_app:${{ steps.vars.outputs.IMAGE_TAGS }}
           push: false
+          load: true
 
       - name: Save Docker image as artifact
         run:  |
