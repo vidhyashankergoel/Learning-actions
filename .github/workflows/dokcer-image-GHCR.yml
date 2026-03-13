@@ -1,4 +1,44 @@
+# ============================================================
+# WORKFLOW LEVEL
+# ============================================================
+# WORKFLOW NAME
+#
+# This workflow calls a reusable CI/CD workflow that exists
+# in another repository.
+#
+# Instead of defining the full CI pipeline here (tests,
+# security scans, docker build, push etc.), this workflow
+# simply delegates the entire pipeline execution to a
+# reusable workflow.
+#
+# This pattern is used in large organizations so that:
+#
+# • CI logic is written once
+# • All repositories follow the same pipeline
+# • Maintenance becomes easier
+# • Security rules remain consistent
+#
+# In this case the reusable workflow lives in:
+#
+# vidhya101/reusable-workflows-vidhya101
+#
+# inside:
+# .github/workflows/ci-pipeline.yml
+
 name: reusable-workflow-for-docker build and push to GHCR
+
+
+# ============================================================
+# WORKFLOW TRIGGERS
+# ============================================================
+# This workflow executes when:
+#
+# 1. Code is pushed to the "main" branch
+# 2. A Pull Request is created targeting the "main" branch
+#
+# This ensures the reusable CI pipeline is executed
+# for both direct commits and pull request validations.
+
 on:
   push:
     branches:
@@ -8,11 +48,69 @@ on:
     branches:
       - main
 
+
 jobs:
 
+# ============================================================
+# JOB LEVEL
+# ============================================================
+# JOB NAME
+#
+# This job does not contain steps directly.
+#
+# Instead it CALLS a reusable workflow that contains
+# the actual CI/CD pipeline logic.
+#
+# GitHub allows workflows to call other workflows using
+# the "uses:" keyword.
+#
+# This is similar to calling a function in programming.
+
   ci-pipeline-job:
+
+    # --------------------------------------------------------
+    # CALLING A REUSABLE WORKFLOW
+    # --------------------------------------------------------
+    #
+    # Syntax:
+    #
+    # uses: OWNER/REPO/.github/workflows/WORKFLOW_FILE@BRANCH
+    #
+    # OWNER  → GitHub username or organization
+    # REPO   → repository name
+    # PATH   → workflow file location
+    # @main  → branch or tag to use
+    #
+    # This tells GitHub Actions to execute the workflow
+    # defined inside the referenced repository.
+
     uses: vidhya101/reusable-workflows-vidhya101/.github/workflows/ci-pipeline.yml@main
-    secrets: 
+
+
+    # --------------------------------------------------------
+    # PASSING SECRETS TO THE REUSABLE WORKFLOW
+    # --------------------------------------------------------
+    #
+    # Reusable workflows cannot automatically access
+    # secrets from the calling repository.
+    #
+    # Secrets must be explicitly passed using "secrets:"
+    #
+    # These secrets will become available inside the
+    # reusable workflow as:
+    #
+    # ${{ secrets.DOCKER_USERNAME }}
+    # ${{ secrets.DOCKER_PASSWORD }}
+    # ${{ secrets.SONAR_TOKEN }}
+
+    secrets:
+
+      # DockerHub username used for docker login
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+
+      # DockerHub password or access token
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+      # SonarQube authentication token used for
+      # sending code analysis results to SonarCloud
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
