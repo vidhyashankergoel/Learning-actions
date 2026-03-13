@@ -530,7 +530,7 @@ jobs:
     if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     # --------------------------------------------------------
-    # JOB PERMISSIONS FOR GHCR
+    # JOB PERMISSIONS FOR GHCR PUBLISH
     # --------------------------------------------------------
     # To push images to GHCR using GITHUB_TOKEN,
     # packages: write permission is required.
