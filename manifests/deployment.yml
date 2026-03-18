@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vidhya-deployment
+  labels:
+    app: vidhya
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vidhya
+  template:
+    metadata:
+      labels:
+        app: vidhya
+    spec:
+      containers:
+        - name: vidhya-app-container
+          image: 
