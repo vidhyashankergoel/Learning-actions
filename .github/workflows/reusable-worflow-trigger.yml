@@ -1,5 +1,5 @@
 
-name: reusable-workflow-for-docker build and push to GHCR
+name: reusable-workflow-for-docker build and push to GHCR # This workflow is designed to be reusable and can be called from other workflows in different repositories. It performs a CI pipeline that includes running CodeQL analysis, SonarQube analysis, building a Docker image, and publishing it to GitHub Container Registry (GHCR). The workflow is triggered on push and pull request events to the main branch.
 on:
   push:
     branches:
