@@ -18,6 +18,7 @@ name: docker image build and publish to GHCR
 # - pull_request to main is used for validation before merge
 
 on:
+  workflow_dispatch: 
   push:
     branches:
       - main
@@ -274,6 +275,7 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # ------------------------------------------------------
       # STEP 4 : QUALITY GATE CHECK
