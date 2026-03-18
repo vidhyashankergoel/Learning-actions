@@ -18,14 +18,10 @@ name: docker image build and publish to GHCR
 # - pull_request to main is used for validation before merge
 
 on:
+  workflow_dispatch: 
   push:
     branches:
       - main
-
-  pull_request:
-    branches:
-      - main
-
 
 jobs:
 
