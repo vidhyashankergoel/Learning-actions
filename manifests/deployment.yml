@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vidhya-deployment
+  labels:
+    app: vidhya
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vidhya
+  template:
+    metadata:
+      labels:
+        app: vidhya
+    spec:
+      containers:
+        - name: vidhya-app-container
+          image: ghcr.io/vidhyashankergoel/vidhya_app:23270914760-b48d6f0
+          ports:
+            - containerPort: 8000
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "250m"
+            requests:
+              memory: "64Mi"
+              cpu: "50m"

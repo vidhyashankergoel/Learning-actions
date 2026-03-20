@@ -1,0 +1,15 @@
+apiVersion: V1
+kind: Service
+metadata:
+  name: vidhya-service
+  labels: 
+    app: vidhya # This label is used to select the pods that this service will route traffic to
+spec:
+  type: NodePort # This exposes the service on a static port on each node's IP address. You can access the service using <NodeIP>:<NodePort>.
+  selector:  # This selector matches the labels of the pods that this service will route traffic to. In this case, it will route traffic to pods with the label "app: vidhya".
+    app: vidhya
+  ports:
+    - protocol: TCP # The protocol used by the service
+      port: 80 # The port on which the service will be exposed
+      targetPort: 8080 # The port on which the application is running inside the container
+      nodePort: 30007 # 30000-32767
