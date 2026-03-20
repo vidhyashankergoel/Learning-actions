@@ -36,3 +36,10 @@ jobs:
       # SonarQube authentication token used for
       # sending code analysis results to SonarCloud
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  deploy-with-kubectl:
+    needs: ci-pipeline-job
+    runs-on: github-action-scaleset-demo
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
