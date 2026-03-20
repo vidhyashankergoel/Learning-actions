@@ -56,3 +56,16 @@ jobs:
           echo "${{ secrets.KUBECONFIG}}" > ~/.kube/config
           kubectl version 
           kubectl get nodes
+
+      - name: Install yg
+        run: |
+          sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq
+          sudo chmod +x /usr/local/bin/yq
+          yq --version 
+
+      - name: update image name in deployment YAML
+        run: |
+          IMAGE_TAGS= "${{github.run_id}}-${GITHUB_SHA::7}"
+          IMAGE="ghcr.io/vidhyashankergoel/vidhya_app:${IMAGE_TAGS}"
+          yq e -i '.spec.template.spec.containers[0].image = strenv(IMAGE)' ./manifests/deployment.yml
+          cat ./manifests/deployment.yml
