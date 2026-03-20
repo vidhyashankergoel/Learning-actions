@@ -18,7 +18,7 @@ permissions:
 jobs:
 
   ci-pipeline-job:
-    uses: vidhya101/reusable-workflows-vidhya101/.github/workflows/ci-pipeline.yml@main
+    uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/ci-pipeline.yml@main
     with:
       run_codeql: true
       run_sonarqube: true
