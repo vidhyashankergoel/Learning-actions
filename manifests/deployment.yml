@@ -16,4 +16,13 @@ spec:
     spec:
       containers:
         - name: vidhya-app-container
-          image: 
+          image: ghcr.io/vidhyashankergoel/vidhya_app:23270914760-b48d6f0
+          ports:
+            - containerPort: 8000
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "250m"
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
