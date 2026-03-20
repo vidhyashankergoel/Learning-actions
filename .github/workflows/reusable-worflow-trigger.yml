@@ -38,7 +38,7 @@ jobs:
 
   deploy-with-kubectl:
     needs: ci-pipeline-job
-    runs-on: github-action-scaleset-demo
+    runs-on: github-action-scaleset-demo # This job is responsible for deploying the application to a Kubernetes cluster using kubectl. It runs after the CI pipeline job is completed successfully. The job checks out the code, sets up kubectl, and applies the Kubernetes manifests to deploy the application.
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
