@@ -39,7 +39,7 @@ jobs:
 
     with:
       ENVIRONMENT: STAGING
-      NAMESPACE: ${{ vars.NAMESPACE }}
       IMAGE_NAME: ghcr.io/vidhyashankergoel/vidhya_app
+
     secrets:
       kubeconfig: ${{ secrets.KUBECONFIG }}  # Kubernetes config file content as a secret
