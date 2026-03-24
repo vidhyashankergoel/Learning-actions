@@ -1,71 +1,121 @@
+name: reusable-workflow-for-docker build and push to GHCR  # Workflow name visible in GitHub Actions UI
 
-name: reusable-workflow-for-docker build and push to GHCR # This workflow is designed to be reusable and can be called from other workflows in different repositories. It performs a CI pipeline that includes running CodeQL analysis, SonarQube analysis, building a Docker image, and publishing it to GitHub Container Registry (GHCR). The workflow is triggered on push and pull request events to the main branch.
 on:
   push:
     branches:
-      - main
+      - main              # Trigger workflow when code is pushed to main branch
 
   pull_request:
     branches:
-      - main
+      - main              # Trigger workflow when PR is opened/updated targeting main
 
 permissions:
-  actions: read
-  security-events: write
-  contents: read
-  packages: write
+  actions: read            # Allows reading GitHub Actions metadata
+  security-events: write   # Required for CodeQL to upload results
+  contents: read           # Read access to repository content
+  packages: write          # Required to push Docker image to GHCR
 
 jobs:
 
   ci-pipeline-job:
-    uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/ci-pipeline.yml@main
+    uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/ci-pipeline.yml@main  
+    # Calling reusable workflow from another repository
+
     with:
-      run_codeql: true
-      run_sonarqube: true
-      run_build: true
-      run_ghcr_publish: true
+      run_codeql: true         # Enable CodeQL security scan
+      run_sonarqube: true      # Enable SonarQube analysis
+      run_build: true          # Enable Docker build step
+      run_ghcr_publish: true   # Enable pushing image to GHCR
+
     secrets:
-
-      # DockerHub username used for docker login
-      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-
-      # DockerHub password or access token
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-
-      # SonarQube authentication token used for
-      # sending code analysis results to SonarCloud
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}   # DockerHub login username
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}   # DockerHub password/token
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}           # SonarQube authentication token
 
   deploy-with-kubectl:
-    needs: ci-pipeline-job
-    runs-on: github-action-scaleset-demo # This job is responsible for deploying the application to a Kubernetes cluster using kubectl. It runs after the CI pipeline job is completed successfully. The job checks out the code, sets up kubectl, and applies the Kubernetes manifests to deploy the application.
+    environment: STAGING       # GitHub Environment (used for approvals, secrets, protection rules)
+
+    env:
+      NAMESPACE: ${{ vars.NAMESPACE }}   # Inject namespace from GitHub environment variables
+
+    needs: ci-pipeline-job     # This job runs ONLY after CI job succeeds
+
+    runs-on: github-action-scaleset-demo  
+    # Uses self-hosted runner (ARC / Kubernetes runner scale set)
+
     steps:
+
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3  
+        # Pulls repository code into runner
 
       - name: install kubectl 
         run: |
           curl -LO "http://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+          # Download latest stable kubectl binary
+
           chmod +x ./kubectl
+          # Make kubectl executable
+
           sudo mv ./kubectl /usr/local/bin/
+          # Move kubectl to system path
+
           kubectl version --client  
+          # Verify kubectl installation
 
       - name: configure kubeconfig
         run: |
           mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG}}" > ~/.kube/config
-          kubectl version 
-          kubectl get nodes
+          # Create kube config directory
 
-      - name: Install yg
+          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+          # Inject kubeconfig from GitHub secrets (cluster access)
+
+          kubectl version 
+          # Verify connection to cluster
+
+          kubectl get nodes
+          # Confirm cluster connectivity
+
+      - name: Install yq
         run: |
           sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq
+          # Download yq tool (used to edit YAML files)
+
           sudo chmod +x /usr/local/bin/yq
+          # Make it executable
+
           yq --version 
+          # Verify installation
 
       - name: update image name in deployment YAML
         run: |
-          IMAGE_TAGS="${{github.run_id}}-${GITHUB_SHA::7}"
+          IMAGE_TAGS="${{ github.run_id }}-${GITHUB_SHA::7}"
+          # Create unique image tag using workflow run ID + commit SHA
+
           export IMAGE="ghcr.io/vidhyashankergoel/vidhya_app:${IMAGE_TAGS}"
+          # Construct full Docker image path in GHCR
+
           yq e -i '.spec.template.spec.containers[0].image = strenv(IMAGE)' ./manifests/deployment.yml
+          # Replace image value inside Kubernetes deployment YAML
+
           cat ./manifests/deployment.yml
+          # Print updated YAML for verification
+
+      - name: Create namespace if not exists 
+        run: |
+          kubectl get namespace $NAMESPACE || kubectl create namespace $NAMESPACE
+          # Check if namespace exists, else create it
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f ./manifests/ -n $NAMESPACE
+          # Apply all Kubernetes manifests (deployment, service, etc.)
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/vidhya-deployment -n $NAMESPACE
+          # Wait until deployment rollout completes successfully
+
+          kubectl get all -n $NAMESPACE
+          # Show all resources (pods, services, deployments) in namespace
