@@ -14,6 +14,10 @@ spec:
       labels:
         app: vidhya
     spec:
+
+      imagePullSecrets:
+        - name: ghcr-secret   # <-- THIS IS THE ONLY ADDITION
+
       containers:
         - name: vidhya-app-container
           image: ghcr.io/vidhyashankergoel/vidhya_app:23270914760-b48d6f0
