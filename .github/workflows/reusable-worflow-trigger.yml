@@ -33,89 +33,13 @@ jobs:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}           # SonarQube authentication token
 
   deploy-with-kubectl:
-    environment: STAGING       # GitHub Environment (used for approvals, secrets, protection rules)
+    needs: ci-pipeline-job   # This job will run after ci-pipeline-job completes successfully
+    uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/deploy-with-kubectl.yml@main  
+    # Calling another reusable workflow for deployment
 
-    env:
-      NAMESPACE: ${{ vars.NAMESPACE }}   # Inject namespace from GitHub environment variables
-
-    needs: ci-pipeline-job     # This job runs ONLY after CI job succeeds
-
-    runs-on: github-action-scaleset-demo  
-    # Uses self-hosted runner (ARC / Kubernetes runner scale set)
-
-    steps:
-
-      - name: Checkout code
-        uses: actions/checkout@v3  
-        # Pulls repository code into runner
-
-      - name: install kubectl 
-        run: |
-          curl -LO "http://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
-          # Download latest stable kubectl binary
-
-          chmod +x ./kubectl
-          # Make kubectl executable
-
-          sudo mv ./kubectl /usr/local/bin/
-          # Move kubectl to system path
-
-          kubectl version --client  
-          # Verify kubectl installation
-
-      - name: configure kubeconfig
-        run: |
-          mkdir -p ~/.kube
-          # Create kube config directory
-
-          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
-          # Inject kubeconfig from GitHub secrets (cluster access)
-
-          kubectl version 
-          # Verify connection to cluster
-
-          kubectl get nodes
-          # Confirm cluster connectivity
-
-      - name: Install yq
-        run: |
-          sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq
-          # Download yq tool (used to edit YAML files)
-
-          sudo chmod +x /usr/local/bin/yq
-          # Make it executable
-
-          yq --version 
-          # Verify installation
-
-      - name: update image name in deployment YAML
-        run: |
-          IMAGE_TAGS="${{ github.run_id }}-${GITHUB_SHA::7}"
-          # Create unique image tag using workflow run ID + commit SHA
-
-          export IMAGE="ghcr.io/vidhyashankergoel/vidhya_app:${IMAGE_TAGS}"
-          # Construct full Docker image path in GHCR
-
-          yq e -i '.spec.template.spec.containers[0].image = strenv(IMAGE)' ./manifests/deployment.yml
-          # Replace image value inside Kubernetes deployment YAML
-
-          cat ./manifests/deployment.yml
-          # Print updated YAML for verification
-
-      - name: Create namespace if not exists 
-        run: |
-          kubectl get namespace $NAMESPACE || kubectl create namespace $NAMESPACE
-          # Check if namespace exists, else create it
-
-      - name: Deploy to Kubernetes
-        run: |
-          kubectl apply -f ./manifests/ -n $NAMESPACE
-          # Apply all Kubernetes manifests (deployment, service, etc.)
-
-      - name: Verify deployment
-        run: |
-          kubectl rollout status deployment/vidhya-deployment -n $NAMESPACE
-          # Wait until deployment rollout completes successfully
-
-          kubectl get all -n $NAMESPACE
-          # Show all resources (pods, services, deployments) in namespace
+    with:
+      ENVIRONMENT: STAGING
+      NAMESPACE: ${{ vars.NAMESPACE }}
+      IMAGE_NAME: ghcr.io/vidhyashankergoel/vidhya_app
+    secrets:
+      kubeconfig: ${{ secrets.KUBECONFIG }}  # Kubernetes config file content as a secret
