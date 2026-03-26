@@ -49,3 +49,4 @@ jobs:
     uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/Selenium-test.yml@main
     with:
       ENVIRONMENT: STAGING  # Pass the environment variable to the Selenium test workflow
+                            # Changed the base URL http://192.168.56.10:30082 to staging as the Selenium test workflow will use the ENVIRONMENT variable to determine the base URL for testing
