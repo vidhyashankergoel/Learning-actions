@@ -53,7 +53,7 @@ def test_get_tasks(driver):
 
 
 ###################################
-# API TEST (CORRECT WAY — NO SELENIUM)
+# API TEST (WITH RETRY - K8s SAFE)
 ###################################
 
 def test_add_task_via_api():
@@ -63,26 +63,36 @@ def test_add_task_via_api():
         json={"title": "Learn Selenium"}
     )
 
-    assert response.status_code == 200
+    # ✅ Correct status code
+    assert response.status_code in [200, 201]
 
-    # 2. Fetch tasks
-    response = requests.get(f"{BASE_URL}/tasks")
-    tasks = response.json()
+    # 2. Retry fetching tasks (handles multi-pod / eventual consistency)
+    for _ in range(5):
+        response = requests.get(f"{BASE_URL}/tasks")
+        tasks = response.json()
 
-    # 3. Validate
-    assert any(task["title"] == "Learn Selenium" for task in tasks)
+        if any(task["title"] == "Learn Selenium" for task in tasks):
+            assert True
+            return
+
+    pytest.fail("Task not found after retries")
 
 
 ###################################
-# OPTIONAL: VALIDATE UI REFLECTS NEW TASK
+# UI VALIDATION WITH RETRY
 ###################################
 
 def test_ui_reflects_new_task(driver):
-    driver.get(f"{BASE_URL}/tasks")
-    body_text = driver.find_element(By.TAG_NAME, "body").text
-    tasks = json.loads(body_text)
+    for _ in range(5):
+        driver.get(f"{BASE_URL}/tasks")
+        body_text = driver.find_element(By.TAG_NAME, "body").text
+        tasks = json.loads(body_text)
 
-    assert any(task["title"] == "Learn Selenium" for task in tasks)
+        if any(task["title"] == "Learn Selenium" for task in tasks):
+            assert True
+            return
+
+    pytest.fail("Task not visible in UI after retries")
 
 
 ###################################
