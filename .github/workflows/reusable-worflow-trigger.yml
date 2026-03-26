@@ -17,7 +17,7 @@ permissions:
 
 jobs:
 
-  ci-pipeline-job:
+  ci-pipeline-job:  # ci-pipeline-job will run first when workflow is triggered
     uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/ci-pipeline.yml@main  
     # Calling reusable workflow from another repository
 
@@ -32,7 +32,7 @@ jobs:
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}   # DockerHub password/token
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}           # SonarQube authentication token
 
-  deploy-with-kubectl:
+  deploy-with-kubectl: # deploy-with-kubectl job will run after ci-pipeline-job completes successfully
     needs: ci-pipeline-job   # This job will run after ci-pipeline-job completes successfully
     uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/deploy-with-kubectl.yml@main  
     # Calling another reusable workflow for deployment
@@ -44,8 +44,7 @@ jobs:
     secrets:
       kubeconfig: ${{ secrets.KUBECONFIG }}  # Kubernetes config file content as a secret
 
-
-  selenium-test:
+  selenium-test: # selenium-test job will run after deploy-with-kubectl job completes successfully
     needs: deploy-with-kubectl
     uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/Selenium-test.yml@main
     with:
