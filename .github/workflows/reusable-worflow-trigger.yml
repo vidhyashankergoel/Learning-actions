@@ -45,7 +45,7 @@ jobs:
       kubeconfig: ${{ secrets.KUBECONFIG }}  # Kubernetes config file content as a secret
 
   selenium-test: # selenium-test job will run after deploy-with-kubectl job completes successfully
-    needs: deploy-with-kubectl
+    needs: deploy-with-kubectl 
     uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/Selenium-test.yml@main
     with:
       ENVIRONMENT: STAGING  # Pass the environment variable to the Selenium test workflow
