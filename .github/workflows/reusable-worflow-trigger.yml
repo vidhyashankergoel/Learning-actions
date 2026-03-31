@@ -13,20 +13,20 @@ permissions:
 
 jobs:
 
-  ci-pipeline-job:  # ci-pipeline-job will run first when workflow is triggered
-    uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/ci-pipeline.yml@main  
-    # Calling reusable workflow from another repository
+  # ci-pipeline-job:  # ci-pipeline-job will run first when workflow is triggered
+  #   uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/ci-pipeline.yml@main  
+  #   # Calling reusable workflow from another repository
 
-    with:
-      run_codeql: true         # Enable CodeQL security scan
-      run_sonarqube: true      # Enable SonarQube analysis
-      run_build: true          # Enable Docker build step
-      run_ghcr_publish: true   # Enable pushing image to GHCR
+  #   with:
+  #     run_codeql: true         # Enable CodeQL security scan
+  #     run_sonarqube: true      # Enable SonarQube analysis
+  #     run_build: true          # Enable Docker build step
+  #     run_ghcr_publish: true   # Enable pushing image to GHCR
 
-    secrets:
-      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}   # DockerHub login username
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}   # DockerHub password/token
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}           # SonarQube authentication token
+  #   secrets:
+  #     DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}   # DockerHub login username
+  #     DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}   # DockerHub password/token
+  #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}           # SonarQube authentication token
 
   # deploy-with-kubectl: # deploy-with-kubectl job will run after ci-pipeline-job completes successfully
   #   needs: ci-pipeline-job   # This job will run after ci-pipeline-job completes successfully
