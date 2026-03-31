@@ -12,43 +12,48 @@ permissions:
   contents: read # Read access to repository content
   packages: write # Required to push Docker image to GHCR
 
+env:
+  OCI_REGISTRY: ghcr.io
+  OCI_REPOSITORY: ${{github.repository_owner}}/helm-charts # This will be in the format owner/repo, e.g., vidhyashankergoel/reusable-workflows-vidhya101
+
 jobs:
 
-  # ci-pipeline-job:  # ci-pipeline-job will run first when workflow is triggered
-  #   uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/ci-pipeline.yml@main  
-  #   # Calling reusable workflow from another repository
+  ci-pipeline-job:  # ci-pipeline-job will run first when workflow is triggered
+    uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/ci-pipeline.yml@main  
+    # Calling reusable workflow from another repository
 
-  #   with:
-  #     run_codeql: true         # Enable CodeQL security scan
-  #     run_sonarqube: true      # Enable SonarQube analysis
-  #     run_build: true          # Enable Docker build step
-  #     run_ghcr_publish: true   # Enable pushing image to GHCR
+    with:
+      run_codeql: true         # Enable CodeQL security scan
+      run_sonarqube: true      # Enable SonarQube analysis
+      run_build: true          # Enable Docker build step
+      run_ghcr_publish: true   # Enable pushing image to GHCR
 
-  #   secrets:
-  #     DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}   # DockerHub login username
-  #     DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}   # DockerHub password/token
-  #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}           # SonarQube authentication token
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}   # DockerHub login username
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}   # DockerHub password/token
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}           # SonarQube authentication token
 
-  # deploy-with-kubectl: # deploy-with-kubectl job will run after ci-pipeline-job completes successfully
-  #   needs: ci-pipeline-job   # This job will run after ci-pipeline-job completes successfully
-  #   uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/deploy-with-kubectl.yml@main  
-  #   # Calling another reusable workflow for deployment
+  deploy-with-kubectl: # deploy-with-kubectl job will run after ci-pipeline-job completes successfully
+    needs: ci-pipeline-job   # This job will run after ci-pipeline-job completes successfully
+    uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/deploy-with-kubectl.yml@main  
+    # Calling another reusable workflow for deployment
 
-  #   with:
-  #     ENVIRONMENT: STAGING
-  #     IMAGE_NAME: ghcr.io/vidhyashankergoel/vidhya_app
+    with:
+      ENVIRONMENT: STAGING
+      IMAGE_NAME: ghcr.io/vidhyashankergoel/vidhya_app
 
-  #   secrets:
-  #     kubeconfig: ${{ secrets.KUBECONFIG }}  # Kubernetes config file content as a secret
+    secrets:
+      kubeconfig: ${{ secrets.KUBECONFIG }}  # Kubernetes config file content as a secret
 
-  # selenium-test: # selenium-test job will run after deploy-with-kubectl job completes successfully
-  #   needs: deploy-with-kubectl 
-  #   uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/Selenium-test.yml@main
-  #   with:
-  #     ENVIRONMENT: STAGING  # Pass the environment variable to the Selenium test workflow
-  #                           # Changed the base URL http://192.168.56.10:30082 to staging as the Selenium test workflow will use the ENVIRONMENT variable to determine the base URL for testing
+  selenium-test: # selenium-test job will run after deploy-with-kubectl job completes successfully
+    needs: deploy-with-kubectl 
+    uses: vidhyashankergoel/reusable-workflows-vidhya101/.github/workflows/Selenium-test.yml@main
+    with:
+      ENVIRONMENT: STAGING  # Pass the environment variable to the Selenium test workflow
+                            # Changed the base URL http://192.168.56.10:30082 to staging as the Selenium test workflow will use the ENVIRONMENT variable to determine the base URL for testing
 
   publish-helm-charts:
+    needs: selenium-test # This job will run after selenium-test job completes successfully
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repo
@@ -90,14 +95,14 @@ jobs:
 
     - name: Login to GHCR (OCI)
       run: |
-        echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+        echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ${{env.OCI_REGISTRY}} -u ${{ github.actor }} --password-stdin
 
 
     - name: Push Helm Charts to GHCR
       run: |
         export IMAGE_TAGS="${{ github.run_id}}-${GITHUB_SHA::7}"
         export VERSION="0.1.0-${IMAGE_TAGS}"
-        helm push packaged-charts/vidhya-app-${VERSION}.tgz oci://ghcr.io/vidhyashankergoel/helm-charts
+        helm push packaged-charts/vidhya-app-${VERSION}.tgz oci://${{env.OCI_REGISTRY}}/${{env.OCI_REPOSITORY}}
 
     - name: Logout from GHCR
-      run: helm registry logout ghcr.io
+      run: helm registry logout ${{env.OCI_REGISTRY}}
