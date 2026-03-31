@@ -1,0 +1,13 @@
+Thank you for deploying Vidhya Application 🚀
+
+Deployment:
+  kubectl get deployment vidhya-deployment
+
+Service:
+  kubectl get svc vidhya-service
+
+Access via NodePort:
+  http://<NODE-IP>:{{ .Values.service.nodePort }}
+
+Access inside cluster:
+  http://vidhya-service.{{ .Release.Namespace }}.svc.cluster.local

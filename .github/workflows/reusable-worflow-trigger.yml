@@ -1,10 +1,6 @@
 name: reusable-workflow-for-docker build and push to GHCR  # Workflow name visible in GitHub Actions UI
 
-on:
-  push:
-    branches:
-      - main              # Trigger workflow when code is pushed to main branch
-
+on:       # Trigger workflow when code is pushed to main branch
   pull_request:
     branches:
       - main              # Trigger workflow when PR is opened/updated targeting main

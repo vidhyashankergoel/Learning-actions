@@ -1,0 +1,15 @@
+apiVersion: v2
+name: vidhya-app
+description: A Helm chart for deploying the vidhya application
+type: application
+version: 0.1.0
+appVersion: "latest"
+
+keywords:
+  - vidhya101
+
+home: https://github.com/vidhyashankergoel/Learning-actions
+sources:
+  - https://github.com/vidhyashankergoel/Learning-actions
+maintainers:
+  - name: Vidhya Shanker Goel
