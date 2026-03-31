@@ -1,15 +1,16 @@
-name: reusable-workflow-for-docker build and push to GHCR  # Workflow name visible in GitHub Actions UI
+name: reusable-workflow-for-docker build and push to GHCR # Workflow name visible in GitHub Actions UI
 
-on:       # Trigger workflow when code is pushed to main branch
+on:
+  # Trigger workflow when code is pushed to main branch
   pull_request:
     branches:
-      - main              # Trigger workflow when PR is opened/updated targeting main
+    - main # Trigger workflow when PR is opened/updated targeting main
 
 permissions:
-  actions: read            # Allows reading GitHub Actions metadata
-  security-events: write   # Required for CodeQL to upload results
-  contents: read           # Read access to repository content
-  packages: write          # Required to push Docker image to GHCR
+  actions: read # Allows reading GitHub Actions metadata
+  security-events: write # Required for CodeQL to upload results
+  contents: read # Read access to repository content
+  packages: write # Required to push Docker image to GHCR
 
 jobs:
 
@@ -50,24 +51,41 @@ jobs:
   publish-helm-charts:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v5
+    - name: Checkout Repo
+      uses: actions/checkout@v5
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: v3.12.0
+    - name: Set up Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: v3.12.0
 
-      - name: check Helm Version
-        run: helm version
+    - name: check Helm Version
+      run: helm version
 
-      - name: Lint Helm Charts
-        run: helm lint charts/
+    - name: Install yq for YAML processing
+      run: |
+        sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq
+        sudo chmod +x /usr/local/bin/yq
+        yq --version
 
-      - name: Package Helm Charts
-        run: |
-          mkdir -p packaged-charts
-          helm package charts/ -d packaged-charts/
-          ls -ltr ./packaged-charts
+    - name: update image name in deployment YAML
+      run: |
+          export IMAGE_TAGS="${{ github.run_id}}-${GITHUB_SHA::7}"
+          export VERSION="0.1.0-${IMAGE_TAGS}"
+          yq e '.image.tag = strenv(IMAGE_TAGS)' charts/values.yaml -i
+          yq e '.version = strenv(VERSION)' charts/Chart.yaml -i
+          yq e '.appVersion = strenv(IMAGE_TAGS)' charts/Chart.yaml -i
+          cat charts/values.yaml
+          
+          cat charts/Chart.yaml      
+
+    - name: Lint Helm Charts
+      run: helm lint charts/
+
+    - name: Package Helm Charts
+      run: |
+        mkdir -p packaged-charts
+        helm package charts/ -d packaged-charts/
+        ls -ltr ./packaged-charts
 
 
