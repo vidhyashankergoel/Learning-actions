@@ -1,0 +1,42 @@
+name: Deploy helm charts in kubernetes 
+on: 
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+permissions:
+  contents: read # Read access to repository content
+  packages: read # Required to push Helm charts to GHCR  
+
+env:
+  OCI_REGISTRY: ghcr.io
+  OCI_REPOSITORY: ${{github.repository_owner}}/helm-charts
+
+jobs:
+  deploy-helm-charts:
+    environment: PRODUCTION
+    runs-on: github-action-scaleset-demo
+    if: github.event.pull_request.merged == true # Run this job only if the PR is merged
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v5
+
+    - name: Set up Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: v3.12.0
+
+    - name: Login to GHCR (OCI)
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ${{env.OCI_REGISTRY}} -u ${{ github.actor }} --password-stdin
+
+    - name: Configure kubeconfig
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.KUBECONFIG }}"  > $HOME/.kube/config
+        chmod 600 $HOME/.kube/config
+
+    - name: Deploy Helm CHarts 
+      run: |
+        helm upgrade --install vidhya_app oci://${{env.OCI_REGISTRY}}/${{env.OCI_REPOSITORY}}/vidhya_app --namespace ${{vars.NAMESPACE}} --create-namespace --wait
