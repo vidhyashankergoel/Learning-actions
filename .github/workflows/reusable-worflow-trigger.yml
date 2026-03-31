@@ -63,3 +63,11 @@ jobs:
 
       - name: Lint Helm Charts
         run: helm lint charts/
+
+      - name: Package Helm Charts
+        run: |
+          mkdir -p packaged-charts
+          helm package charts/ -d packaged-charts/
+          la -ltr ./packaged-charts
+
+
