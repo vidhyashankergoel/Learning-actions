@@ -97,7 +97,7 @@ jobs:
       run: |
         export IMAGE_TAGS="${{ github.run_id}}-${GITHUB_SHA::7}"
         export VERSION="0.1.0-${IMAGE_TAGS}"
-        helm push vidhya101-${VERSION}.tgz oci://ghcr.io/vidhyashankergoel/helm-charts
+        helm push packaged-charts/vidhya-app-${VERSION}.tgz oci://ghcr.io/vidhyashankergoel/helm-charts
 
     - name: Logout from GHCR
       run: helm registry logout ghcr.io
