@@ -60,3 +60,6 @@ jobs:
 
       - name: check Helm Version
         run: helm version
+
+      - name: Lint Helm Charts
+        run: helm lint ./charts/*
