@@ -70,14 +70,14 @@ jobs:
 
     - name: update image name in deployment YAML
       run: |
-          export IMAGE_TAGS="${{ github.run_id}}-${GITHUB_SHA::7}"
-          export VERSION="0.1.0-${IMAGE_TAGS}"
-          yq e '.image.tag = strenv(IMAGE_TAGS)' charts/values.yaml -i
-          yq e '.version = strenv(VERSION)' charts/Chart.yaml -i
-          yq e '.appVersion = strenv(IMAGE_TAGS)' charts/Chart.yaml -i
-          cat charts/values.yaml
-          
-          cat charts/Chart.yaml      
+        export IMAGE_TAGS="${{ github.run_id}}-${GITHUB_SHA::7}"
+        export VERSION="0.1.0-${IMAGE_TAGS}"
+        yq e '.image.tag = strenv(IMAGE_TAGS)' charts/values.yaml -i
+        yq e '.version = strenv(VERSION)' charts/Chart.yaml -i
+        yq e '.appVersion = strenv(IMAGE_TAGS)' charts/Chart.yaml -i
+        cat charts/values.yaml
+
+        cat charts/Chart.yaml      
 
     - name: Lint Helm Charts
       run: helm lint charts/
@@ -88,4 +88,16 @@ jobs:
         helm package charts/ -d packaged-charts/
         ls -ltr ./packaged-charts
 
+    - name: Login to GHCR (OCI)
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
 
+
+    - name: Push Helm Charts to GHCR
+      run: |
+        export IMAGE_TAGS="${{ github.run_id}}-${GITHUB_SHA::7}"
+        export VERSION="0.1.0-${IMAGE_TAGS}"
+        helm push vidhya101-${VERSION}.tgz oci://ghcr.io/vidhyashankergoel/helm-charts
+
+    - name: Logout from GHCR
+      run: helm registry logout ghcr.io
