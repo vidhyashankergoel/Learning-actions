@@ -62,4 +62,4 @@ jobs:
         run: helm version
 
       - name: Lint Helm Charts
-        run: helm lint ./charts/*
+        run: helm lint charts/
