@@ -37,6 +37,12 @@ jobs:
         echo "${{ secrets.KUBECONFIG }}"  > $HOME/.kube/config
         chmod 600 $HOME/.kube/config
 
+    - name: Reading Helm Chart version from HELMCHART-VERSION file
+      run: |
+        source HELMCHART-VERSION
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "Deploying Helm CHart Version: ${VERSION}"
+
     - name: Deploy Helm CHarts 
       run: |
-        helm upgrade --install vidhya_app oci://${{env.OCI_REGISTRY}}/${{env.OCI_REPOSITORY}}/vidhya_app --namespace ${{vars.NAMESPACE}} --create-namespace --wait
+        helm upgrade --install vidhya-app oci://${{env.OCI_REGISTRY}}/${{env.OCI_REPOSITORY}}/vidhya-app --version ${{env.VERSION}} --namespace ${{vars.NAMESPACE}} --create-namespace --wait

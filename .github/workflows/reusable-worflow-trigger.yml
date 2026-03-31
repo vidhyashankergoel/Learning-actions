@@ -5,11 +5,13 @@ on:
   pull_request:
     branches:
     - main # Trigger workflow when PR is opened/updated targeting main
+    paths-ignore: 
+    - HELMCHART-VERSION
 
 permissions:
   actions: read # Allows reading GitHub Actions metadata
   security-events: write # Required for CodeQL to upload results
-  contents: read # Read access to repository content
+  contents: write # Read access to repository content
   packages: write # Required to push Docker image to GHCR
 
 env:
@@ -106,3 +108,19 @@ jobs:
 
     - name: Logout from GHCR
       run: helm registry logout ${{env.OCI_REGISTRY}}
+
+    - name: update helm Version in Repo 
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@github.com"
+
+        git fetch origin ${{github.head_ref}}
+        git reset --hard origin/${{github.head_ref}}
+
+        export IMAGE_TAGS="${{ github.run_id}}-${GITHUB_SHA::7}"
+        export VERSION="0.1.0-${IMAGE_TAGS}"
+        echo "VERSION=\"${VERSION}\"" >> HELMCHART-VERSION
+        
+        git add HELMCHART-VERSION
+        git commit -m "Update Helm chart version to ${VERSION}"
+        git push origin HEAD:${{github.head_ref}}
