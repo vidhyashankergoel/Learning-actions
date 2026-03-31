@@ -68,6 +68,6 @@ jobs:
         run: |
           mkdir -p packaged-charts
           helm package charts/ -d packaged-charts/
-          la -ltr ./packaged-charts
+          ls -ltr ./packaged-charts
 
 
