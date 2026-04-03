@@ -62,7 +62,7 @@ jobs:
       uses: actions/checkout@v5
 
     - name: Publish Helm Chart to OCI registry
-      uses: vidhyashankergoel/helm-actions@v1.0
+      uses: vidhyashankergoel/helm-actions@v1.0               #changing release version for fix
       with:
         oci_registry: ${{ env.OCI_REGISTRY }}
         oci_repository: ${{ env.OCI_REPOSITORY }}
