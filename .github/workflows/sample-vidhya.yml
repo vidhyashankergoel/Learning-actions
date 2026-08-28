@@ -2,17 +2,17 @@ name: ci-cd pipeline #workflow name  display this name under the Actions tab in 
 
 # trigger based on event A trigger is the condition that starts a workflow.
 on:
-  push: # when someone push the code to main branch ; use whenever code is updated
-    branches:
-      - dev
+  #push: # when someone push the code to main branch ; use whenever code is updated
+   # branches:
+    #  - dev
       # NOTE: '*' does not cross a slash. Matches feature-login, NOT
       # feature/login. Use 'feature/*' if that is your naming convention.
-      - 'feature-*'
-      - main
+     # - 'feature-*'
+     # - main
 
-  pull_request:
-    branches:
-      - main
+ # pull_request:
+  #  branches:
+   #   - main
     # NOTE: a PR from dev into main fires this AND the push trigger above,
     # so every PR costs two full runs. Drop dev from push if unwanted.
 
