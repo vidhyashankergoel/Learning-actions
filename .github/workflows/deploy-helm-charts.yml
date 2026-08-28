@@ -1,9 +1,10 @@
 name: Deploy helm charts in kubernetes 
-on: 
-  pull_request:
-    types: [closed]
-    branches:
-      - main
+on:
+  workflow_dispatch: 
+  #pull_request:
+  #  types: [closed]
+  #  branches:
+  #    - main
 
 permissions:
   contents: read # Read access to repository content
